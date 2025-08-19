@@ -25,7 +25,7 @@ export default function LayoutDrawer({ open, onClose }: { open: boolean; onClose
       >
         <div className="flex flex-col h-full p-6 gap-4">
           <button className="self-end mb-4 text-gray-500" onClick={onClose}>
-            닫기
+            닫기;
           </button>
           {menuItems.map((item) => (
             <button
