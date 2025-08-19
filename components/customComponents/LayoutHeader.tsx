@@ -16,7 +16,7 @@ export default function LayoutHeader() {
         {/* 좌측 메뉴 아이콘 */}
         <NavBarButton />
         {/* 중앙 타이틀 */}
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+        <h1 className="text-xl md:text-2xl font-bold text-sky-900">
           세탁톡톡
         </h1>
         {/* 우측 버튼들 */}
