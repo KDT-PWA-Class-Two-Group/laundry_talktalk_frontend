@@ -63,7 +63,7 @@ export default function FindIdForm() {
 			</div>
 			<Separator />
 			<Button type="submit" className="w-full rounded-full py-3 text-lg font-bold" disabled={loading}>
-				{loading ? "찾는 중..." : "ID 찾기"}
+				{loading ? "찾는 중..." : "찾기"}
 			</Button>
 			{foundId && (
 				<div className="mt-8 text-center text-lg font-bold">
