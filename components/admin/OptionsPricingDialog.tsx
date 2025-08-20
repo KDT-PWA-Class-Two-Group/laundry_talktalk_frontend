@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Settings2, Plus } from "lucide-react";
 // import { OptionsPricingDialog } from "@/components/admin/OptionsPricingDialog";
+
+/** ===== 라우트 상수 (프로젝트 경로에 맞게 바꿔도 됨) ===== */
+const DEVICES_PATH = "/admin"; // 기기관리 페이지(현재 페이지)
+const OPTIONS_PATH = "/admin/options-pricing"; // 옵션/가격 페이지
 
 /** ===== 타입 ===== */
 export type DeviceKind = "세탁기" | "건조기" | "기타";
@@ -23,12 +28,11 @@ export interface DeviceOptions {
   courses: Course[];
   addOns: AddOn[];
 }
-
 interface Device {
   id: string;
   name: string;
   kind: DeviceKind;
-  options?: DeviceOptions; // 없을 수 있음
+  options?: DeviceOptions;
 }
 
 /** ===== 유틸 ===== */
@@ -61,14 +65,19 @@ const TEMPLATES: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
 
 /** ===== 메인: 기기관리 페이지 ===== */
 export default function DeviceManagementPage() {
+  const router = useRouter(); // ✅ 라우터
+  const pathname = usePathname(); // ✅ 현재 경로
+  const isDevices = pathname === DEVICES_PATH;
+  const isOptions = pathname === OPTIONS_PATH;
+
   // 장비 리스트 (데모 시드)
   const [devices, setDevices] = useState<Device[]>([
     { id: "d1", name: "세탁기1", kind: "세탁기", options: TEMPLATES["세탁기"] },
     { id: "d2", name: "건조기1", kind: "건조기", options: TEMPLATES["건조기"] },
-    { id: "d3", name: "세탁기1", kind: "세탁기" }, // 옵션 없음
+    { id: "d3", name: "세탁기1", kind: "세탁기" },
   ]);
 
-  // 옵션 편집 모달
+  // 옵션 편집 모달(보류)
   const [editingId, setEditingId] = useState<string | null>(null);
   const editing = useMemo(
     () => devices.find((d) => d.id === editingId),
@@ -83,15 +92,12 @@ export default function DeviceManagementPage() {
       { id: uid("d"), name: `세탁기${count}`, kind: "세탁기" },
     ]);
   };
-
   const removeDevice = (id: string) => {
     if (!confirm("해당 기기를 삭제할까요?")) return;
     setDevices((prev) => prev.filter((d) => d.id !== id));
   };
-
   const openOptions = (id: string) => setEditingId(id);
   const closeOptions = () => setEditingId(null);
-
   const saveOptions = (value: DeviceOptions) => {
     if (!editing) return;
     setDevices((prev) =>
@@ -100,18 +106,26 @@ export default function DeviceManagementPage() {
     closeOptions();
   };
 
+  // ✅ 세그먼트 버튼 공통 클래스
+  const segBase = "flex-1 rounded-full px-4 py-2 text-sm transition";
+  const segActive = "bg-white font-semibold shadow text-slate-900";
+  const segInActive = "text-slate-600 hover:text-slate-900";
+
   return (
     <div className="mx-auto w-full max-w-4xl">
       {/* 상단 세그먼트 + 추가 버튼 */}
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex w-full max-w-md items-center rounded-full bg-slate-100 p-1">
           <button
-            className="flex-1 rounded-full bg-white px-4 py-2 text-sm font-semibold shadow"
-            // 실제 탭 스위치 필요 시 onClick에 라우팅/상태 연결
+            className={`${segBase} ${isDevices ? segActive : segInActive}`}
+            onClick={() => router.push(DEVICES_PATH)} // ✅ 기기관리로 이동
           >
             + 기기관리
           </button>
-          <button className="flex-1 rounded-full px-4 py-2 text-sm text-slate-600">
+          <button
+            className={`${segBase} ${isOptions ? segActive : segInActive}`}
+            onClick={() => router.push(OPTIONS_PATH)} // ✅ 옵션/가격으로 이동
+          >
             옵션 관리
           </button>
         </div>
@@ -170,10 +184,9 @@ export default function DeviceManagementPage() {
                 <span className="font-medium">{addOns.length}개</span>
               </div>
 
-              {/* 내용 */}
+              {/* 목록/비어있음 */}
               {hasAny ? (
                 <div className="space-y-5">
-                  {/* 세탁 코스 */}
                   {courses.length > 0 && (
                     <section>
                       <h3 className="mb-2 text-sm font-semibold text-slate-700">
@@ -202,8 +215,6 @@ export default function DeviceManagementPage() {
                       </div>
                     </section>
                   )}
-
-                  {/* 추가 옵션 */}
                   {addOns.length > 0 && (
                     <section>
                       <h3 className="mb-2 text-sm font-semibold text-slate-700">
@@ -226,7 +237,6 @@ export default function DeviceManagementPage() {
                   )}
                 </div>
               ) : (
-                // 비었을 때
                 <div className="rounded-2xl border-2 border-dashed border-slate-300 px-4 py-16 text-center text-sm text-slate-500">
                   설정된 옵션이 없습니다.
                   <div className="mt-3">
@@ -246,7 +256,7 @@ export default function DeviceManagementPage() {
         })}
       </div>
 
-      {/* 옵션 편집 모달 */}
+      {/* 모달 연결은 필요 시 주석 해제 */}
       {/* {editing && (
         <OptionsPricingDialog
           open={!!editing}
