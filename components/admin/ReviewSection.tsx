@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-// ✅ shadcn/ui
+// shadcn/ui
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,13 +14,15 @@ import {
 
 type ReviewRow = {
   id: string;
-  rating: number;
+  rating: number; // ← 이 값 변경 시 별 UI가 자동 반영
   author: string;
   createdAt: string; // "YYYY.MM.DD"
   content: string;
   hasComment: boolean;
   comment?: string;
 };
+
+type SortKey = "date" | "rating" | "commentAsc" | "commentDesc";
 
 export default function ReviewSection({
   storeName,
@@ -33,7 +35,7 @@ export default function ReviewSection({
     initialRows ?? [
       {
         id: "r1",
-        rating: 4,
+        rating: 1.5,
         author: "민정손",
         createdAt: "2025.08.14",
         content: "리뷰내용",
@@ -59,31 +61,43 @@ export default function ReviewSection({
     ]
   );
 
-  // 정렬 상태
-  const [sortKey, setSortKey] = useState<"rating" | "date">("date");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
 
-  // 정렬 적용된 데이터
   const sortedRows = useMemo(() => {
     const copy = [...rows];
-    const toDate = (s: string) => {
+    const toTime = (s: string) => {
       const [y, m, d] = s.split(".").map((t) => parseInt(t, 10));
-      return new Date(y, m - 1, d);
+      return new Date(y, m - 1, d).getTime();
     };
+    const byNewest = (a: ReviewRow, b: ReviewRow) =>
+      toTime(b.createdAt) - toTime(a.createdAt);
+    const byRating = (a: ReviewRow, b: ReviewRow) => b.rating - a.rating;
+    const toInt = (v: boolean) => (v ? 1 : 0);
 
-    if (sortKey === "rating") {
-      // 별점 내림차순 → 날짜 최신 tie-breaker
-      copy.sort(
-        (a, b) =>
-          b.rating - a.rating ||
-          toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime()
-      );
-    } else {
-      // 등록순(최신 먼저) → 별점 tie-breaker
-      copy.sort(
-        (a, b) =>
-          toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime() ||
-          b.rating - a.rating
-      );
+    switch (sortKey) {
+      case "rating":
+        copy.sort((a, b) => byRating(a, b) || byNewest(a, b));
+        break;
+      case "commentAsc":
+        copy.sort(
+          (a, b) =>
+            toInt(a.hasComment) - toInt(b.hasComment) ||
+            byNewest(a, b) ||
+            byRating(a, b)
+        );
+        break;
+      case "commentDesc":
+        copy.sort(
+          (a, b) =>
+            toInt(b.hasComment) - toInt(a.hasComment) ||
+            byNewest(a, b) ||
+            byRating(a, b)
+        );
+        break;
+      case "date":
+      default:
+        copy.sort((a, b) => byNewest(a, b) || byRating(a, b));
+        break;
     }
     return copy;
   }, [rows, sortKey]);
@@ -92,7 +106,6 @@ export default function ReviewSection({
     <div className="rounded-xl border bg-white p-4">
       <h2 className="mb-4 text-lg font-semibold">리뷰관리 · {storeName}</h2>
 
-      {/* 정렬 드롭다운 (shadcn/ui) */}
       <div className="mb-2 flex items-center justify-end">
         <SortMenu value={sortKey} onChange={setSortKey} />
       </div>
@@ -102,6 +115,11 @@ export default function ReviewSection({
           <OldSchoolReviewCard
             key={r.id}
             row={r}
+            onChangeRating={(val) =>
+              setRows((prev) =>
+                prev.map((x) => (x.id === r.id ? { ...x, rating: val } : x))
+              )
+            }
             onDeleteReview={() =>
               setRows((prev) => prev.filter((x) => x.id !== r.id))
             }
@@ -138,14 +156,23 @@ function SortMenu({
   value,
   onChange,
 }: {
-  value: "rating" | "date";
-  onChange: (v: "rating" | "date") => void;
+  value: SortKey;
+  onChange: (v: SortKey) => void;
 }) {
+  const label =
+    value === "rating"
+      ? "별점순"
+      : value === "date"
+      ? "등록순"
+      : value === "commentAsc"
+      ? "댓글 미작성"
+      : "댓글 작성";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="h-8 px-3 text-sm">
-          정렬: {value === "rating" ? "별점순" : "등록순"}
+          정렬: {label}
           <svg
             className="ml-1"
             width="14"
@@ -157,14 +184,19 @@ function SortMenu({
           </svg>
         </Button>
       </DropdownMenuTrigger>
-      {/* ✅ 흰 배경 고정 + z-index 보강 */}
-      <DropdownMenuContent align="end" className="w-40 bg-white z-50">
+      <DropdownMenuContent align="end" className="w-48 bg-white z-50">
         <DropdownMenuRadioGroup
           value={value}
-          onValueChange={(v) => onChange(v as "rating" | "date")}
+          onValueChange={(v) => onChange(v as SortKey)}
         >
-          <DropdownMenuRadioItem value="rating">별점순</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="date">등록순</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="rating">별점순</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="commentAsc">
+            댓글 미작성
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="commentDesc">
+            댓글 작성
+          </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -174,12 +206,14 @@ function SortMenu({
 /* ------------------- Review Card ------------------- */
 function OldSchoolReviewCard({
   row,
+  onChangeRating,
   onDeleteReview,
   onCreateComment,
   onUpdateComment,
   onDeleteComment,
 }: {
   row: ReviewRow;
+  onChangeRating: (v: number) => void;
   onDeleteReview: () => void;
   onCreateComment: (text: string) => void;
   onUpdateComment: (text: string) => void;
@@ -194,7 +228,8 @@ function OldSchoolReviewCard({
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <StarRating rating={row.rating} />
+          {/* ✅ 클릭으로 수정 가능한 별점 */}
+          <EditableStarRating value={row.rating} onChange={onChangeRating} />
           <div className="font-semibold text-slate-800">
             {row.rating.toFixed(1)} <span className="ml-1">{row.author}</span>
           </div>
@@ -307,34 +342,59 @@ function OldSchoolReviewCard({
   );
 }
 
-/* ------------------- UI bits ------------------- */
-function StarRating({ rating }: { rating: number }) {
-  const full = Math.floor(rating);
-  const empty = 5 - full;
+/* ------------------- Editable Star Rating ------------------- */
+/** 클릭/호버로 수정 가능한 별점 컴포넌트 (정수 단계) */
+function EditableStarRating({
+  value,
+  onChange,
+  max = 5,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  max?: number;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const active = hover ?? value;
+
   return (
-    <div className="flex items-center">
-      {Array.from({ length: full }).map((_, i) => (
-        <Star key={`f-${i}`} color="red" />
-      ))}
-      {Array.from({ length: empty }).map((_, i) => (
-        <Star key={`e-${i}`} color="gray" />
-      ))}
+    <div className="flex items-center" role="radiogroup" aria-label="별점">
+      {Array.from({ length: max }).map((_, i) => {
+        const idx = i + 1; // 1..max
+        const filled = idx <= active;
+        return (
+          <button
+            key={idx}
+            type="button"
+            role="radio"
+            aria-checked={idx === Math.round(value)}
+            className="p-0.5"
+            onMouseEnter={() => setHover(idx)}
+            onMouseLeave={() => setHover(null)}
+            onClick={() => onChange(idx)}
+          >
+            <StarIcon filled={filled} />
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function Star({ color }: { color: "red" | "gray" }) {
-  const fill =
-    color === "red"
-      ? "fill-red-600 text-red-600"
-      : "fill-slate-400 text-slate-400";
+function StarIcon({ filled }: { filled: boolean }) {
   return (
-    <svg className={`h-4 w-4 ${fill}`} viewBox="0 0 20 20" aria-hidden>
+    <svg
+      className={`h-4 w-4 ${
+        filled ? "fill-red-600 text-red-600" : "fill-slate-300 text-slate-300"
+      }`}
+      viewBox="0 0 20 20"
+      aria-hidden
+    >
       <path d="M10 1.5 12.7 7l6 .9-4.3 4.2 1 5.9-5.4-2.8-5.4 2.8 1-5.9L1.3 7.9l6-.9L10 1.5z" />
     </svg>
   );
 }
 
+/* ------------------- Small UI bits ------------------- */
 function BlueButton({
   className = "",
   ...rest
