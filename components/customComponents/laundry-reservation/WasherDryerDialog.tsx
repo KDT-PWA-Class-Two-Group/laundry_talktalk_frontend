@@ -7,15 +7,63 @@ const WASHER_OPTIONS = ["삶음", "헹굼추가", "탈수강화"];
 const DRYER_TIMES = [20, 40, 60];
 
 export default function WasherDryerDialog({ open, onClose, mode, machineId }: { open: boolean; onClose: () => void; mode: string; machineId: number | null }) {
+  // 시간 테이블
+  const COURSE_TIMES: Record<string, number> = {
+    "표준세탁": 60,
+    "강력세탁": 80,
+    "섬세세탁": 70,
+  };
+  const OPTION_TIMES: Record<string, number> = {
+    "삶음": 10,
+    "헹굼추가": 5,
+    "탈수강화": 3,
+  };
+  const DRYER_TIMES_TABLE: Record<number, number> = {
+    20: 20,
+    40: 40,
+    60: 60,
+  };
   const [selectedCourse, setSelectedCourse] = useState(WASHER_COURSES[0]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [selectedDryerTime, setSelectedDryerTime] = useState(DRYER_TIMES[0]);
 
-  // 가격 및 시간 예시
-  const washerPrice = 3000;
-  const dryerPrice = 2500;
-  const totalPrice = mode === "세탁+건조" ? washerPrice + dryerPrice : mode === "세탁" ? washerPrice : dryerPrice;
-  const totalTime = mode === "세탁+건조" ? 120 : mode === "세탁" ? 60 : 60;
+  // 가격 테이블
+  const COURSE_PRICES: Record<string, number> = {
+    "표준세탁": 3000,
+    "강력세탁": 3500,
+    "섬세세탁": 3200,
+  };
+  const OPTION_PRICES: Record<string, number> = {
+    "삶음": 500,
+    "헹굼추가": 300,
+    "탈수강화": 200,
+  };
+  const DRYER_PRICES: Record<number, number> = {
+    20: 1200,
+    40: 2000,
+    60: 2500,
+  };
+
+  // 가격 계산
+  const washerPrice = COURSE_PRICES[selectedCourse] || 0;
+  const washerOptionPrice = selectedOptions.reduce((sum, opt) => sum + (OPTION_PRICES[opt] || 0), 0);
+  const dryerPrice = DRYER_PRICES[selectedDryerTime] || 0;
+  const totalPrice =
+    mode === "세탁+건조"
+      ? washerPrice + washerOptionPrice + dryerPrice
+      : mode === "세탁"
+      ? washerPrice + washerOptionPrice
+      : dryerPrice;
+  // 시간 계산
+  const washerTime = COURSE_TIMES[selectedCourse] || 0;
+  const washerOptionTime = selectedOptions.reduce((sum, opt) => sum + (OPTION_TIMES[opt] || 0), 0);
+  const dryerTime = DRYER_TIMES_TABLE[selectedDryerTime] || 0;
+  const totalTime =
+    mode === "세탁+건조"
+      ? washerTime + washerOptionTime + dryerTime
+      : mode === "세탁"
+      ? washerTime + washerOptionTime
+      : dryerTime;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -44,6 +92,7 @@ export default function WasherDryerDialog({ open, onClose, mode, machineId }: { 
                     style={mode === "건조" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                   >
                     {course}
+                    <span className="block text-xs mt-1">{COURSE_PRICES[course].toLocaleString()}원</span>
                   </button>
                 ))}
               </div>
@@ -61,6 +110,7 @@ export default function WasherDryerDialog({ open, onClose, mode, machineId }: { 
                       disabled={mode === "건조"}
                     />
                     <span className="text-sm" style={mode === "건조" ? { opacity: 0.5 } : {}}>{option}</span>
+                    <span className="text-xs ml-1 text-gray-500">+{OPTION_PRICES[option].toLocaleString()}원</span>
                   </label>
                 ))}
               </div>
@@ -78,6 +128,7 @@ export default function WasherDryerDialog({ open, onClose, mode, machineId }: { 
                     style={mode === "세탁" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                   >
                     {time}분
+                    <span className="block text-xs mt-1">{DRYER_PRICES[time].toLocaleString()}원</span>
                   </button>
                 ))}
               </div>
@@ -86,11 +137,13 @@ export default function WasherDryerDialog({ open, onClose, mode, machineId }: { 
             <div className="flex flex-col items-end gap-2 mt-8">
               <div className="text-right text-sm">
                 {mode !== "건조" && <span>세탁 {washerPrice.toLocaleString()}원</span>}
+                {mode !== "건조" && washerOptionPrice > 0 && <span> + 옵션 {washerOptionPrice.toLocaleString()}원</span>}
                 {mode === "세탁+건조" && <span> + </span>}
                 {mode !== "세탁" && <span>건조 {dryerPrice.toLocaleString()}원</span>}
               </div>
               <div className="text-right text-sm font-bold">총 예상 비용: {totalPrice.toLocaleString()}원</div>
               <div className="text-right text-sm font-bold mb-2">총 예상 시간: {totalTime}분</div>
+              {/* 예약 버튼 아직 비활성화 - 활성화시 mypage내의 이용내역으로 이동 */}
               <button className="bg-blue-600 text-white px-5 py-2 rounded font-bold">예약하기</button>
             </div>
           </div>
