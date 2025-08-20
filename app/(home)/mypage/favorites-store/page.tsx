@@ -1,9 +1,10 @@
-export default function FavoritesStorePage() {
+import FavoritesPage from "@/components/customComponents/mypage/Mypagefavorites_store";
+
+export default function EditProfilePage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">즐겨찾기 가게</h1>
-      <p>여기에 즐겨찾기 가게 목록이 표시됩니다.</p>
-      {/* 즐겨찾기 가게 목록 컴포넌트 추가 예정 */}
+    // 최상위 div의 스타일을 제거하여 화면 전체를 차지하도록 변경
+    <div className="w-full">
+      <FavoritesPage />
     </div>
   );
 }
