@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 const menuItems = [
   { label: "세탁예약", path: "/" },
   { label: "예상비용조회", path: "/admin" },
-  { label: "위치기반 매장안내", path: "/mypage" },
+  { label: "위치기반 매장안내", path: "/nearby-stores" },
   { label: "매장별 정보제공", path: "/login" },
 ];
 
