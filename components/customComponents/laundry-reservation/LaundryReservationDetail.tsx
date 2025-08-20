@@ -26,7 +26,7 @@ export default function LaundryReservationDetail({ storeId }: { storeId: string 
   const [selectedWasher, setSelectedWasher] = useState<number | null>(null);
   const [selectedDryer, setSelectedDryer] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<string>("");
+  const [dialogMode, setDialogMode] = useState<string>("세탁");
   const [dialogMachineId, setDialogMachineId] = useState<number | null>(null);
 
   // 버튼 disable 조건
