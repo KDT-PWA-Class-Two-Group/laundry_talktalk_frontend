@@ -70,9 +70,9 @@ export default function WasherDryerDialog({ open, onClose, mode, machineId }: { 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* 흐린 오버레이 */}
-          <div className="absolute inset-0 bg-black bg-opacity-40 backdrop-blur-sm transition-all" onClick={onClose} />
+          <div className="absolute inset-0 bg-opacity-40 backdrop-blur-sm transition-all" onClick={onClose} />
           {/* 모달 컨텐츠 */}
-          <div className="relative p-6 w-[350px] bg-white rounded-xl shadow-2xl z-10">
+          <div className="relative p-6 w-full md:w-1/3 bg-white rounded-xl shadow-2xl z-10">
             {/* 선택된 기기 번호 표시 */}
             {machineId !== null && (
               <div className="absolute left-4 top-2 text-xs text-gray-500">기기번호: {machineId}</div>
