@@ -88,6 +88,7 @@ const renderStars = (rating: number) => {
   );
 };
 
+// 즐겨찾기 목록에 표시되는 카드 컴포넌트
 const FavoriteStoreCard: React.FC<{
   store: FavoriteStore;
   onRemove: (id: number) => void;
@@ -109,7 +110,6 @@ const FavoriteStoreCard: React.FC<{
       </button>
 
       {isHovered ? (
-        // 마우스 오버 시 보이는 상세 정보
         <div className="absolute inset-0 bg-white p-4 flex flex-col justify-center transition-opacity duration-300">
           <h3 className="font-bold text-lg mb-2">{store.name}</h3>
           <div className="text-sm text-gray-700 space-y-1">
@@ -129,7 +129,6 @@ const FavoriteStoreCard: React.FC<{
           </div>
         </div>
       ) : (
-        // 기본 상태 (이미지 + 이름)
         <div className="absolute inset-0 flex flex-col">
           {store.imageUrl ? (
             <Image
@@ -156,17 +155,88 @@ const FavoriteStoreCard: React.FC<{
   );
 };
 
+// 지도에서 선택한 매장 정보를 표시하는 컴포넌트
+const SelectedStoreCard: React.FC<{
+  store: FavoriteStore;
+  isFavorite: boolean;
+  onToggleFavorite: (id: number, isFavorite: boolean) => void;
+}> = ({ store, isFavorite, onToggleFavorite }) => {
+  return (
+    <div className="flex items-center p-4 bg-white rounded-lg shadow-lg">
+      <div className="w-20 h-20 rounded-md overflow-hidden mr-4 flex-shrink-0">
+        {store.imageUrl ? (
+          <Image
+            src={store.imageUrl}
+            alt={store.name}
+            width={80}
+            height={80}
+            style={{ objectFit: "cover" }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+            이미지 없음
+          </div>
+        )}
+      </div>
+      <div className="flex-grow">
+        <h4 className="font-bold text-lg">{store.name}</h4>
+        <div className="text-xs text-gray-600 space-y-0.5 mt-1">
+          <p className="flex items-center gap-1">
+            <span className="text-gray-400">⭐</span> 평점 | {store.rating}
+          </p>
+          <p className="flex items-center gap-1">
+            <span className="text-gray-400">📍</span> 주소 | {store.address}
+          </p>
+          <p className="flex items-center gap-1">
+            <span className="text-gray-400">📞</span> 전화번호 | {store.phone}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={() => onToggleFavorite(store.id, isFavorite)}
+        className="ml-4 p-2 rounded-full bg-white border border-gray-300 hover:bg-gray-100"
+        aria-label="즐겨찾기 추가/제거"
+      >
+        <Heart
+          className="w-5 h-5"
+          fill={isFavorite ? "red" : "none"}
+          stroke="red"
+        />
+      </button>
+    </div>
+  );
+};
+
 export default function FavoritesPage() {
   const [favoriteStores, setFavoriteStores] =
     useState<FavoriteStore[]>(mockFavoriteStores);
   const [showLocationPermissionModal, setShowLocationPermissionModal] =
     useState(false);
   const [showAddFavoritesModal, setShowAddFavoritesModal] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 }); // 서울 시청 기본 좌표
+  const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 });
+  const [selectedStore, setSelectedStore] = useState<FavoriteStore | null>(
+    null
+  );
 
   const handleRemoveFavorite = (id: number) => {
     const updatedStores = favoriteStores.filter((store) => store.id !== id);
     setFavoriteStores(updatedStores);
+  };
+
+  const handleToggleFavorite = (id: number, isFavorite: boolean) => {
+    if (isFavorite) {
+      const updatedStores = favoriteStores.filter((store) => store.id !== id);
+      setFavoriteStores(updatedStores);
+    } else {
+      const storeToAdd = mockFavoriteStores.find((store) => store.id === id);
+      if (storeToAdd) {
+        setFavoriteStores([...favoriteStores, storeToAdd]);
+      }
+    }
+    // 선택된 매장 정보 업데이트
+    setSelectedStore((prevStore) =>
+      prevStore ? { ...prevStore, isFavorite: !isFavorite } : null
+    );
   };
 
   const handleOpenAddFavoritesModal = () => {
@@ -201,6 +271,14 @@ export default function FavoritesPage() {
     setShowLocationPermissionModal(false);
     setMapCenter({ lat: 37.5665, lng: 126.978 });
     setShowAddFavoritesModal(true);
+  };
+
+  // 지도에서 핀을 클릭했을 때 호출될 함수 (예시)
+  const handleMapPinClick = (storeId: number) => {
+    const store = mockFavoriteStores.find((s) => s.id === storeId);
+    if (store) {
+      setSelectedStore(store);
+    }
   };
 
   return (
@@ -274,35 +352,31 @@ export default function FavoritesPage() {
         onOpenChange={setShowAddFavoritesModal}
       >
         <DialogContent
-          className="bg-white max-w-md w-full h-[600px]"
+          className="bg-white max-w-md w-full h-[600px] flex flex-col p-4"
           onPointerDownOutside={(e) => e.preventDefault()}
         >
-          {/* mb-4를 삭제하여 간격을 줄임 */}
-          <DialogHeader>
+          <DialogHeader className="pb-2">
             <DialogTitle>즐겨찾기 추가</DialogTitle>
             <DialogClose />
           </DialogHeader>
-          {/* DialogHeader 바로 아래로 검색창을 옮김 */}
-          <div className="relative mt-4">
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                placeholder="장소를 검색하세요."
-                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                🔍
-              </span>
-              <button
-                onClick={findAndSetUserLocation}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="현재 위치로 이동"
-              >
-                <Compass className="w-5 h-5" />
-              </button>
-            </div>
+          <div className="relative flex items-center mb-2">
+            <input
+              type="text"
+              placeholder="장소를 검색하세요."
+              className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              🔍
+            </span>
+            <button
+              onClick={() => handleMapPinClick(1)} // 예시로 핀 클릭 이벤트 호출
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="현재 위치로 이동"
+            >
+              <Compass className="w-5 h-5" />
+            </button>
           </div>
-          <div className="w-full flex-grow bg-gray-200 flex items-center justify-center text-gray-500 mt-4">
+          <div className="w-full flex-grow bg-gray-200 flex items-center justify-center text-gray-500">
             <p className="text-center">
               현재 지도 중심 좌표:
               <br />
@@ -313,6 +387,22 @@ export default function FavoritesPage() {
               표시합니다.)
             </p>
           </div>
+          {selectedStore && (
+            <div className="pt-4">
+              <SelectedStoreCard
+                store={selectedStore}
+                isFavorite={favoriteStores.some(
+                  (store) => store.id === selectedStore.id
+                )}
+                onToggleFavorite={(id) => {
+                  const isCurrentlyFavorite = favoriteStores.some(
+                    (store) => store.id === id
+                  );
+                  handleToggleFavorite(id, isCurrentlyFavorite);
+                }}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
