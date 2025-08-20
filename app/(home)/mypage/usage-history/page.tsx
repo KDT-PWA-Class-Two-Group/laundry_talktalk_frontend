@@ -1,16 +1,10 @@
-import Test from "@/components/customComponents/usagehistory/test";
+import UsageHistoryPage from "@/components/customComponents/mypage/Mypageusage";
 
-export default function UsageHistoryPage() {
+export default function EditProfilePage() {
   return (
-    <div className="w-[20px] flex-1">
-    
-    
-<Test />
-<div />
-    
+    // 최상위 div의 스타일을 제거하여 화면 전체를 차지하도록 변경
+    <div className="w-full">
+      <UsageHistoryPage />
     </div>
-
-    
-    
   );
 }
