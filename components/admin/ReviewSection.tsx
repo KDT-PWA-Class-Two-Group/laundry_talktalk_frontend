@@ -14,7 +14,7 @@ import {
 
 type ReviewRow = {
   id: string;
-  rating: number; // ← 이 값 변경 시 별 UI가 자동 반영
+  rating: number; // 0.5 step 지원 (예: 1.5, 3.5)
   author: string;
   createdAt: string; // "YYYY.MM.DD"
   content: string;
@@ -35,7 +35,7 @@ export default function ReviewSection({
     initialRows ?? [
       {
         id: "r1",
-        rating: 1.5,
+        rating: 4,
         author: "민정손",
         createdAt: "2025.08.14",
         content: "리뷰내용",
@@ -44,7 +44,7 @@ export default function ReviewSection({
       },
       {
         id: "r2",
-        rating: 3,
+        rating: 3.5,
         author: "민정손",
         createdAt: "2025.08.12",
         content: "리뷰내용",
@@ -112,7 +112,7 @@ export default function ReviewSection({
 
       <div className="space-y-5">
         {sortedRows.map((r) => (
-          <OldSchoolReviewCard
+          <ReviewCard
             key={r.id}
             row={r}
             onChangeRating={(val) =>
@@ -204,7 +204,7 @@ function SortMenu({
 }
 
 /* ------------------- Review Card ------------------- */
-function OldSchoolReviewCard({
+function ReviewCard({
   row,
   onChangeRating,
   onDeleteReview,
@@ -213,7 +213,7 @@ function OldSchoolReviewCard({
   onDeleteComment,
 }: {
   row: ReviewRow;
-  onChangeRating: (v: number) => void;
+  onChangeRating: (v: number) => void; // 0.5 step
   onDeleteReview: () => void;
   onCreateComment: (text: string) => void;
   onUpdateComment: (text: string) => void;
@@ -221,14 +221,14 @@ function OldSchoolReviewCard({
 }) {
   const [commentText, setCommentText] = useState(row.comment ?? "");
   const [editing, setEditing] = useState(false);
-  const [open, setOpen] = useState(false); // 댓글 영역 토글
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="rounded border-2 border-sky-700/60 bg-sky-100 p-2">
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* ✅ 클릭으로 수정 가능한 별점 */}
+          {/* ✅ 반개(0.5) 단위 편집 가능한 별점 */}
           <EditableStarRating value={row.rating} onChange={onChangeRating} />
           <div className="font-semibold text-slate-800">
             {row.rating.toFixed(1)} <span className="ml-1">{row.author}</span>
@@ -342,8 +342,12 @@ function OldSchoolReviewCard({
   );
 }
 
-/* ------------------- Editable Star Rating ------------------- */
-/** 클릭/호버로 수정 가능한 별점 컴포넌트 (정수 단계) */
+/* ------------------- Editable Star Rating (0.5 step) ------------------- */
+/**
+ * - 마우스 이동으로 반개/한개 단위 미리보기
+ * - 클릭 시 0.5 단위로 onChange
+ * - 표시는 overlay 기법: 회색 별 위에 빨간 별을 비율만큼 덮어 그림
+ */
 function EditableStarRating({
   value,
   onChange,
@@ -353,41 +357,75 @@ function EditableStarRating({
   onChange: (v: number) => void;
   max?: number;
 }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const active = hover ?? value;
+  const [hoverVal, setHoverVal] = useState<number | null>(null);
+
+  // 별 하나 영역에서 마우스 위치를 0.5/1.0으로 스냅
+  const pickFraction = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    base: number
+  ) => {
+    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const ratio = Math.min(
+      Math.max((e.clientX - rect.left) / rect.width, 0),
+      1
+    );
+    const half = ratio < 0.5 ? 0.5 : 1.0; // 0.5 단위 스냅
+    return base + half; // base는 0,1,2,3,4
+  };
+
+  const active = hoverVal ?? value;
 
   return (
-    <div className="flex items-center" role="radiogroup" aria-label="별점">
+    <div
+      className="flex items-center"
+      role="radiogroup"
+      aria-label="별점(0.5 단위)"
+    >
       {Array.from({ length: max }).map((_, i) => {
-        const idx = i + 1; // 1..max
-        const filled = idx <= active;
+        const base = i; // 0..4
+        // 이 별의 채움 비율 계산: 0, 0.5, 1
+        const frac = Math.max(0, Math.min(1, active - base));
+        const fill = frac >= 1 ? 1 : frac >= 0.5 ? 0.5 : 0;
+
         return (
-          <button
-            key={idx}
-            type="button"
+          <div
+            key={i}
+            className="relative h-5 w-5 cursor-pointer select-none"
+            onMouseMove={(e) => setHoverVal(pickFraction(e, base))}
+            onMouseLeave={() => setHoverVal(null)}
+            onClick={(e) => onChange(pickFraction(e, base))}
             role="radio"
-            aria-checked={idx === Math.round(value)}
-            className="p-0.5"
-            onMouseEnter={() => setHover(idx)}
-            onMouseLeave={() => setHover(null)}
-            onClick={() => onChange(idx)}
+            aria-checked={
+              Math.round(value * 2) / 2 > base &&
+              Math.round(value * 2) / 2 <= base + 1
+            }
+            title={`${(
+              base + (fill === 1 ? 1 : fill === 0.5 ? 0.5 : 0)
+            ).toFixed(1)} / ${max}`}
           >
-            <StarIcon filled={filled} />
-          </button>
+            {/* 회색 빈 별(바닥) */}
+            <StarSvg className="text-slate-300" />
+            {/* 빨간 채움 별: width로 마스킹 */}
+            <div
+              className="absolute left-0 top-0 h-full overflow-hidden"
+              style={{ width: `${fill * 100}%` }} // 0, 50, 100
+            >
+              <StarSvg className="text-red-600" />
+            </div>
+          </div>
         );
       })}
     </div>
   );
 }
 
-function StarIcon({ filled }: { filled: boolean }) {
+function StarSvg({ className = "" }: { className?: string }) {
   return (
     <svg
-      className={`h-4 w-4 ${
-        filled ? "fill-red-600 text-red-600" : "fill-slate-300 text-slate-300"
-      }`}
+      className={`h-5 w-5 ${className} fill-current`}
       viewBox="0 0 20 20"
       aria-hidden
+      focusable="false"
     >
       <path d="M10 1.5 12.7 7l6 .9-4.3 4.2 1 5.9-5.4-2.8-5.4 2.8 1-5.9L1.3 7.9l6-.9L10 1.5z" />
     </svg>
