@@ -110,6 +110,8 @@ function OldSchoolReviewCard({
 }) {
   const [commentText, setCommentText] = useState(row.comment ?? "");
   const [editing, setEditing] = useState(false);
+  // ✅ 댓글 영역 토글
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="rounded border-2 border-sky-700/60 bg-sky-100 p-2">
@@ -131,6 +133,18 @@ function OldSchoolReviewCard({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* ✅ 댓글 버튼 복구 + 토글 */}
+          <BlueButton
+            onClick={() => {
+              // 열 때 현재 댓글 내용을 인풋에 최신화
+              if (!open && row.hasComment) setCommentText(row.comment ?? "");
+              setOpen((v) => !v);
+              // 열기 시 보기모드부터 시작
+              setEditing(false);
+            }}
+          >
+            댓글
+          </BlueButton>
           <BlueButton onClick={onDeleteReview}>삭제</BlueButton>
         </div>
       </div>
@@ -140,83 +154,85 @@ function OldSchoolReviewCard({
         {row.content}
       </div>
 
-      {/* 댓글 영역 */}
-      <div className="mx-6 mt-4 rounded border-2 border-sky-700/60 bg-sky-50 p-4">
-        {/* 댓글이 없을 때: 입력 + 등록 */}
-        {!row.hasComment && !editing && (
-          <div className="flex items-center gap-3">
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="댓글내용"
-              className="h-10 flex-1 rounded border-2 border-slate-700/50 bg-white px-3 text-sm outline-none"
-            />
-            <BlueButton
-              onClick={() => {
-                const text = commentText.trim();
-                if (!text) return;
-                onCreateComment(text);
-                setEditing(false);
-              }}
-              disabled={!commentText.trim()}
-            >
-              등록
-            </BlueButton>
-            <BlueButton onClick={() => setCommentText("")}>삭제</BlueButton>
-          </div>
-        )}
-
-        {/* 댓글이 있을 때: 보기 모드 */}
-        {row.hasComment && !editing && (
-          <div className="flex items-start gap-3">
-            <div className="flex-1 rounded border-2 border-slate-700/50 bg-white px-4 py-6 text-center text-base text-slate-900">
-              {row.comment}
-            </div>
-            <div className="flex flex-col gap-2">
+      {/* ✅ 댓글 영역: 버튼 눌렀을 때만 표시 */}
+      {open && (
+        <div className="mx-6 mt-4 rounded border-2 border-sky-700/60 bg-sky-50 p-4">
+          {/* 댓글 없음: 입력 + 등록 */}
+          {!row.hasComment && !editing && (
+            <div className="flex items-center gap-3">
+              <input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="댓글내용"
+                className="h-10 flex-1 rounded border-2 border-slate-700/50 bg-white px-3 text-sm outline-none"
+              />
               <BlueButton
                 onClick={() => {
+                  const text = commentText.trim();
+                  if (!text) return;
+                  onCreateComment(text);
+                  setEditing(false);
+                }}
+                disabled={!commentText.trim()}
+              >
+                등록
+              </BlueButton>
+              <BlueButton onClick={() => setCommentText("")}>삭제</BlueButton>
+            </div>
+          )}
+
+          {/* 댓글 있음: 보기 모드 */}
+          {row.hasComment && !editing && (
+            <div className="flex items-start gap-3">
+              <div className="flex-1 rounded border-2 border-slate-700/50 bg-white px-4 py-6 text-center text-base text-slate-900">
+                {row.comment}
+              </div>
+              <div className="flex flex-col gap-2">
+                <BlueButton
+                  onClick={() => {
+                    setCommentText(row.comment ?? "");
+                    setEditing(true);
+                  }}
+                >
+                  수정
+                </BlueButton>
+                <BlueButton onClick={onDeleteComment}>삭제</BlueButton>
+              </div>
+            </div>
+          )}
+
+          {/* 댓글 있음: 수정 모드 */}
+          {row.hasComment && editing && (
+            <div className="flex items-center gap-3">
+              <input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="댓글내용"
+                className="h-10 flex-1 rounded border-2 border-slate-700/50 bg-white px-3 text-sm outline-none"
+              />
+              <BlueButton
+                onClick={() => {
+                  const text = commentText.trim();
+                  if (!text) return;
+                  onUpdateComment(text);
+                  setEditing(false);
+                }}
+                disabled={!commentText.trim()}
+              >
+                저장
+              </BlueButton>
+              <BlueButton
+                onClick={() => {
+                  setEditing(false);
                   setCommentText(row.comment ?? "");
-                  setEditing(true);
                 }}
               >
-                수정
+                취소
               </BlueButton>
-              <BlueButton onClick={onDeleteComment}>삭제</BlueButton>
             </div>
-          </div>
-        )}
-
-        {/* 댓글이 있을 때: 수정 모드 */}
-        {row.hasComment && editing && (
-          <div className="flex items-center gap-3">
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="댓글내용"
-              className="h-10 flex-1 rounded border-2 border-slate-700/50 bg-white px-3 text-sm outline-none"
-            />
-            <BlueButton
-              onClick={() => {
-                const text = commentText.trim();
-                if (!text) return;
-                onUpdateComment(text);
-                setEditing(false);
-              }}
-              disabled={!commentText.trim()}
-            >
-              저장
-            </BlueButton>
-            <BlueButton
-              onClick={() => {
-                setEditing(false);
-                setCommentText(row.comment ?? "");
-              }}
-            >
-              취소
-            </BlueButton>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
