@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState, ChangeEvent, useCallback } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  ChangeEvent,
+  useCallback,
+  useEffect,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, X } from "lucide-react";
 
@@ -18,7 +25,6 @@ interface NoticeItem {
 }
 
 function formatToDotDate(input: string) {
-  // input: YYYY-MM-DD -> YYYY.MM.DD
   if (!input) return "";
   const [y, m, d] = input.split("-");
   return `${y}.${m}.${d}`;
@@ -58,11 +64,11 @@ function Modal({
 }
 
 export default function NoticeSection({ storeName }: { storeName: string }) {
-  // 탭/매장/정렬 상태
+  // 매장/정렬
   const [store, setStore] = useState<string>(storeName || "둔산점");
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
-  // 데모 데이터
+  // 더미데이터 (여기서는 리터럴만!)
   const [items, setItems] = useState<NoticeItem[]>([
     {
       id: "n1",
@@ -76,7 +82,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
     {
       id: "n2",
       title: "일 안함~",
-      type: "공지",
+      type: "공지", // ← form.type 쓰지 않음
       createdAt: "2025.08.14",
       startAt: "2025-08-14",
       endAt: "2025-08-14",
@@ -84,7 +90,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
     },
   ]);
 
-  // 목록 선택/모달 상태
+  // 선택/모달
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = useMemo(
     () => items.find((n) => n.id === selectedId) || null,
@@ -93,7 +99,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "view" | "edit">("create");
 
-  // 폼 상태
+  // 폼
   const today = new Date().toISOString().slice(0, 10);
   const emptyForm = {
     title: "",
@@ -101,9 +107,27 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
     endAt: today,
     content: "",
     fileName: "",
+    type: "공지" as NoticeType,
   };
   const [form, setForm] = useState<typeof emptyForm>(emptyForm);
+
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const titleRef = useRef<HTMLInputElement | null>(null);
+  const startRef = useRef<HTMLInputElement | null>(null);
+  const endRef = useRef<HTMLInputElement | null>(null);
+  const [pendingPicker, setPendingPicker] = useState<"start" | "end" | null>(
+    null
+  );
+
+  // edit 전환 뒤 달력 오픈
+  useEffect(() => {
+    if (mode === "edit" && pendingPicker) {
+      const el = pendingPicker === "start" ? startRef.current : endRef.current;
+      el?.focus();
+      setTimeout(() => el?.showPicker?.(), 0);
+      setPendingPicker(null);
+    }
+  }, [mode, pendingPicker]);
 
   const sortedItems = useMemo(() => {
     const copy = [...items];
@@ -121,19 +145,21 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
     setMode("create");
     setForm(emptyForm);
     setOpen(true);
+    setTimeout(() => titleRef.current?.focus(), 0);
   };
 
   const openView = (id: string) => {
     const target = items.find((n) => n.id === id);
     if (!target) return;
     setSelectedId(id);
-    setMode("view");
+    setMode("edit"); // 바로 수정
     setForm({
       title: target.title,
       startAt: target.startAt || today,
       endAt: target.endAt || today,
       content: target.content || "",
       fileName: target.fileName || "",
+      type: target.type, // 기존 태그 유지
     });
     setOpen(true);
   };
@@ -144,7 +170,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
   }, []);
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target as {
       name: keyof typeof form;
@@ -166,7 +192,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
       const newItem: NoticeItem = {
         id: `n${Date.now()}`,
         title: form.title,
-        type: "공지",
+        type: form.type, // 여기서만 form.type 사용
         createdAt: formatToDotDate(form.startAt),
         startAt: form.startAt,
         endAt: form.endAt,
@@ -176,6 +202,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
       setItems((prev) => [newItem, ...prev]);
       setSelectedId(newItem.id);
       setMode("view");
+      setOpen(false);
     } else if (mode === "edit" && selected) {
       setItems((prev) =>
         prev.map((it) =>
@@ -186,6 +213,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
                 startAt: form.startAt,
                 endAt: form.endAt,
                 createdAt: formatToDotDate(form.startAt),
+                type: form.type, // 편집 시 태그도 반영
                 content: form.content,
                 fileName: form.fileName,
               }
@@ -203,29 +231,10 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
     closeModal();
   };
 
-  const beginEdit = () => selected && setMode("edit");
-
   return (
     <div className="space-y-3">
-      {/* 상단: 매장선택 + 정렬 + 글쓰기 */}
+      {/* 상단 바 */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-slate-600">매장선택 :</span>
-          <div className="relative">
-            <select
-              value={store}
-              onChange={(e) => setStore(e.target.value)}
-              className="appearance-none h-9 rounded-xl border px-3 pr-8 text-sm bg-white"
-            >
-              {["둔산점", "강남점", "서면점"].map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-          </div>
-        </div>
         <div className="ml-auto flex items-center gap-2">
           <Button
             className="h-8 rounded-md px-3"
@@ -239,7 +248,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
         </div>
       </div>
 
-      {/* 공지/홍보 리스트만 표시 */}
+      {/* 리스트 */}
       <div className="overflow-hidden rounded-xl border bg-white">
         <div className="grid grid-cols-[1fr_120px_120px]">
           {["제목", "구분", "생성일"].map((h) => (
@@ -264,7 +273,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
         ))}
       </div>
 
-      {/* 모달: 작성/조회/수정 */}
+      {/* 모달 */}
       <Modal
         open={open}
         onClose={closeModal}
@@ -282,6 +291,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
             <div className="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-2">
               <div className="text-base font-semibold">제목 :</div>
               <input
+                ref={titleRef}
                 name="title"
                 value={form.title}
                 onChange={handleChange}
@@ -290,29 +300,70 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
                 readOnly={mode === "view"}
               />
             </div>
+
+            {/* 태그 (create/edit 노출) */}
+            {(mode === "create" || mode === "edit") && (
+              <div className="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-2">
+                <div className="text-base font-semibold">태그 :</div>
+                <div className="inline-flex overflow-hidden rounded-xl border">
+                  {(["공지", "홍보"] as NoticeType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, type: t }))}
+                      className={`px-3 py-2 text-sm ${
+                        form.type === t
+                          ? "bg-slate-800 text-white"
+                          : "bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 기간 설정 */}
             <div className="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-2">
               <div className="text-base font-semibold">기간 설정 :</div>
               <div className="flex items-center gap-2">
                 <input
+                  ref={startRef}
                   type="date"
                   name="startAt"
                   value={form.startAt}
                   onChange={handleChange}
+                  onMouseDown={(e) => {
+                    if (mode === "view") {
+                      e.preventDefault();
+                      setMode("edit");
+                      setPendingPicker("start");
+                    }
+                  }}
                   className="h-10 rounded-xl border bg-white px-3 text-sm"
                   readOnly={mode === "view"}
                 />
                 <span className="px-1">~</span>
                 <input
+                  ref={endRef}
                   type="date"
                   name="endAt"
                   value={form.endAt}
                   onChange={handleChange}
+                  onMouseDown={(e) => {
+                    if (mode === "view") {
+                      e.preventDefault();
+                      setMode("edit");
+                      setPendingPicker("end");
+                    }
+                  }}
                   className="h-10 rounded-xl border bg-white px-3 text-sm"
                   readOnly={mode === "view"}
                 />
               </div>
             </div>
+
             {/* 내용 */}
             <div className="grid grid-cols-[90px_minmax(0,1fr)] items-start gap-2">
               <div className="text-base font-semibold">&nbsp;</div>
@@ -325,6 +376,7 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
                 readOnly={mode === "view"}
               />
             </div>
+
             {/* 이미지 첨부 */}
             <div className="grid grid-cols-[90px_minmax(0,1fr)_90px] items-center gap-2">
               <div className="text-base font-semibold">이미지 첨부 :</div>
@@ -355,29 +407,31 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
               </div>
             </div>
           </div>
+
           {/* 하단 버튼 */}
-          <div className="mt-4 flex items-center justify-end gap-2">
-            <Button className="rounded-xl px-5" onClick={handleSubmit}>
-              {mode === "create" ? "등록" : mode === "edit" ? "저장" : "등록"}
-            </Button>
-            <div className="ml-3 flex items-center gap-2">
-              <span className="text-xs text-slate-600">조회시</span>
+          {mode === "create" ? (
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <Button className="rounded-xl px-5" onClick={handleSubmit}>
+                등록
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center justify-end gap-2">
               <Button
                 className="h-9 rounded-xl px-3 text-sm"
-                onClick={beginEdit}
-                disabled={!selected || mode === "edit" || mode === "create"}
+                onClick={handleSubmit}
               >
-                수정
+                저장
               </Button>
               <Button
                 className="h-9 rounded-xl px-3 text-sm"
                 onClick={handleDelete}
-                disabled={!selected || mode === "create"}
+                disabled={!selected}
               >
                 삭제
               </Button>
             </div>
-          </div>
+          )}
         </div>
       </Modal>
     </div>
