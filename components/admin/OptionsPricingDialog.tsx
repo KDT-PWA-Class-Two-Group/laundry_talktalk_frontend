@@ -1,73 +1,42 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Undo2, Save, Wand2, X, Settings2 } from "lucide-react";
+import { Settings2, Plus } from "lucide-react";
+// import { OptionsPricingDialog } from "@/components/admin/OptionsPricingDialog";
 
-/* =========================
- * 타입 정의
- * ========================= */
+/** ===== 타입 ===== */
 export type DeviceKind = "세탁기" | "건조기" | "기타";
-
 export interface Course {
   id: string;
   name: string;
-  durationMin?: number; // 분 단위 (선택)
-  price: number; // 원 단위
+  durationMin?: number;
+  price: number;
 }
-
 export interface AddOn {
   id: string;
   name: string;
-  price: number; // 원 단위
+  price: number;
 }
-
 export interface DeviceOptions {
   courses: Course[];
   addOns: AddOn[];
 }
 
-export interface OptionsPricingDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSave: (value: DeviceOptions) => void;
-  deviceName?: string; // UI 타이틀에 표시
-  deviceKind?: DeviceKind; // 뱃지 표기용
-  initial?: Partial<DeviceOptions>; // 빈 값 가능
+interface Device {
+  id: string;
+  name: string;
+  kind: DeviceKind;
+  options?: DeviceOptions; // 없을 수 있음
 }
 
-/* =========================
- * 유틸리티
- * ========================= */
+/** ===== 유틸 ===== */
+const fmtKRW = (n: number) => new Intl.NumberFormat("ko-KR").format(n);
 const uid = (p = "id") =>
   `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-const toNonNegativeInt = (v: string | number | undefined) => {
-  if (v === undefined || v === null || v === "") return undefined;
-  const n = Math.max(0, Math.floor(Number(v)));
-  return Number.isFinite(n) ? n : undefined;
-};
-
-const toMoney = (v: string | number) => {
-  const n = Math.max(0, Math.floor(Number(v)));
-  return Number.isFinite(n) ? n : 0;
-};
-
-const fmtKRW = (n: number) => new Intl.NumberFormat("ko-KR").format(n);
-
-/* 템플릿 (스크린샷 기준 기본값) */
+/** 데모 템플릿 */
 const TEMPLATES: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
   세탁기: {
     courses: [
@@ -90,432 +59,204 @@ const TEMPLATES: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
   },
 };
 
-/* =========================
- * 하위 행 컴포넌트 (리렌더 최적화)
- * ========================= */
-const CourseRow = React.memo(function CourseRow({
-  value,
-  onChange,
-  onRemove,
-  index,
-}: {
-  value: Course;
-  onChange: (next: Course) => void;
-  onRemove: () => void;
-  index: number;
-}) {
-  return (
-    <div className="grid grid-cols-12 items-center gap-2 rounded-xl border p-3">
-      <div className="col-span-12 md:col-span-5">
-        <Label className="sr-only">코스명</Label>
-        <Input
-          value={value.name}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          placeholder="예) 표준세탁"
-        />
-      </div>
-      <div className="col-span-6 md:col-span-3">
-        <Label className="sr-only">시간(분)</Label>
-        <Input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          value={value.durationMin ?? ""}
-          onChange={(e) =>
-            onChange({
-              ...value,
-              durationMin: toNonNegativeInt(e.target.value),
-            })
-          }
-          placeholder="60"
-        />
-      </div>
-      <div className="col-span-6 md:col-span-3">
-        <Label className="sr-only">가격(원)</Label>
-        <Input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          step={100}
-          value={value.price}
-          onChange={(e) =>
-            onChange({ ...value, price: toMoney(e.target.value) })
-          }
-          placeholder="5000"
-        />
-      </div>
-      <div className="col-span-12 md:col-span-1 flex justify-end">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={onRemove}
-          aria-label={`코스 삭제 ${index + 1}`}
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
-    </div>
-  );
-});
+/** ===== 메인: 기기관리 페이지 ===== */
+export default function DeviceManagementPage() {
+  // 장비 리스트 (데모 시드)
+  const [devices, setDevices] = useState<Device[]>([
+    { id: "d1", name: "세탁기1", kind: "세탁기", options: TEMPLATES["세탁기"] },
+    { id: "d2", name: "건조기1", kind: "건조기", options: TEMPLATES["건조기"] },
+    { id: "d3", name: "세탁기1", kind: "세탁기" }, // 옵션 없음
+  ]);
 
-const AddOnRow = React.memo(function AddOnRow({
-  value,
-  onChange,
-  onRemove,
-  index,
-}: {
-  value: AddOn;
-  onChange: (next: AddOn) => void;
-  onRemove: () => void;
-  index: number;
-}) {
-  return (
-    <div className="grid grid-cols-12 items-center gap-2 rounded-xl border p-3">
-      <div className="col-span-12 md:col-span-8">
-        <Label className="sr-only">옵션명</Label>
-        <Input
-          value={value.name}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          placeholder="예) 섬유유연제"
-        />
-      </div>
-      <div className="col-span-6 md:col-span-3">
-        <Label className="sr-only">가격(원)</Label>
-        <Input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          step={100}
-          value={value.price}
-          onChange={(e) =>
-            onChange({ ...value, price: toMoney(e.target.value) })
-          }
-          placeholder="1000"
-        />
-      </div>
-      <div className="col-span-6 md:col-span-1 flex justify-end">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={onRemove}
-          aria-label={`옵션 삭제 ${index + 1}`}
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
-    </div>
-  );
-});
-
-/* =========================
- * 메인 컴포넌트
- * ========================= */
-export function OptionsPricingDialog({
-  open,
-  onClose,
-  onSave,
-  deviceName = "기기",
-  deviceKind = "세탁기",
-  initial,
-}: OptionsPricingDialogProps) {
-  // 초기 시드
-  const seed = useMemo<DeviceOptions>(
-    () => ({
-      courses: initial?.courses?.length
-        ? initial.courses
-        : structuredClone(
-            TEMPLATES[deviceKind as Exclude<DeviceKind, "기타">]?.courses || []
-          ),
-      addOns: initial?.addOns?.length
-        ? initial.addOns
-        : structuredClone(
-            TEMPLATES[deviceKind as Exclude<DeviceKind, "기타">]?.addOns || []
-          ),
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deviceKind]
+  // 옵션 편집 모달
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = useMemo(
+    () => devices.find((d) => d.id === editingId),
+    [devices, editingId]
   );
 
-  const [courses, setCourses] = useState<Course[]>(seed.courses);
-  const [addOns, setAddOns] = useState<AddOn[]>(seed.addOns);
-
-  // open 시점마다 시드 재적용
-  useEffect(() => {
-    if (open) {
-      setCourses(seed.courses);
-      setAddOns(seed.addOns);
-    }
-  }, [open, seed.courses, seed.addOns]);
-
-  const resetAll = useCallback(() => {
-    setCourses(seed.courses);
-    setAddOns(seed.addOns);
-  }, [seed.courses, seed.addOns]);
-
-  const applyTemplate = useCallback((kind: Exclude<DeviceKind, "기타">) => {
-    setCourses(structuredClone(TEMPLATES[kind].courses));
-    setAddOns(structuredClone(TEMPLATES[kind].addOns));
-  }, []);
-
-  // CRUD 핸들러
-  const addCourse = () =>
-    setCourses((prev) => [
+  // 핸들러
+  const addDevice = () => {
+    const count = devices.length + 1;
+    setDevices((prev) => [
       ...prev,
-      { id: uid("c"), name: "새 코스", durationMin: 60, price: 5000 },
+      { id: uid("d"), name: `세탁기${count}`, kind: "세탁기" },
     ]);
-  const addAddOn = () =>
-    setAddOns((prev) => [
-      ...prev,
-      { id: uid("a"), name: "새 옵션", price: 1000 },
-    ]);
+  };
 
-  const patchCourse = (id: string, next: Course) =>
-    setCourses((list) => list.map((c) => (c.id === id ? next : c)));
-  const patchAddOn = (id: string, next: AddOn) =>
-    setAddOns((list) => list.map((a) => (a.id === id ? next : a)));
+  const removeDevice = (id: string) => {
+    if (!confirm("해당 기기를 삭제할까요?")) return;
+    setDevices((prev) => prev.filter((d) => d.id !== id));
+  };
 
-  const removeCourse = (id: string) =>
-    setCourses((list) => list.filter((c) => c.id !== id));
-  const removeAddOn = (id: string) =>
-    setAddOns((list) => list.filter((a) => a.id !== id));
+  const openOptions = (id: string) => setEditingId(id);
+  const closeOptions = () => setEditingId(null);
 
-  // 미리보기
-  const totalPreview = useMemo(() => {
-    const base = courses.reduce((s, c) => s + (c.price || 0), 0);
-    const opts = addOns.reduce((s, a) => s + (a.price || 0), 0);
-    return { base, opts, sum: base + opts };
-  }, [courses, addOns]);
-
-  // 저장
-  const handleSave = () => {
-    const trimmedCourses = courses.map((c) => ({
-      ...c,
-      name: c.name.trim(),
-      price: toMoney(c.price),
-      durationMin:
-        c.durationMin === undefined
-          ? undefined
-          : toNonNegativeInt(c.durationMin)!,
-    }));
-    const trimmedAddOns = addOns.map((a) => ({
-      ...a,
-      name: a.name.trim(),
-      price: toMoney(a.price),
-    }));
-
-    const validCourses =
-      trimmedCourses.length > 0 &&
-      trimmedCourses.every((c) => c.name.length > 0 && c.price >= 0);
-    const validAddOns = trimmedAddOns.every(
-      (a) => a.name.length > 0 && a.price >= 0
+  const saveOptions = (value: DeviceOptions) => {
+    if (!editing) return;
+    setDevices((prev) =>
+      prev.map((d) => (d.id === editing.id ? { ...d, options: value } : d))
     );
-
-    if (!validCourses || !validAddOns) {
-      alert("이름과 가격을 확인해 주세요.");
-      return;
-    }
-
-    onSave({ courses: trimmedCourses, addOns: trimmedAddOns });
-    onClose();
+    closeOptions();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden">
-        <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="size-5" /> {deviceName} 옵션/가격 설정
-            {deviceKind && (
-              <Badge variant="secondary" className="ml-2">
-                {deviceKind}
-              </Badge>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-
-        <ScrollArea className="max-h-[70vh]">
-          <div className="px-6 py-5 grid gap-6">
-            {/* 템플릿 퀵 액션 */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => applyTemplate("세탁기")}
-                className="gap-1"
-                title="세탁기 템플릿 적용"
-              >
-                <Wand2 className="size-4" /> 세탁기 템플릿
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => applyTemplate("건조기")}
-                className="gap-1"
-                title="건조기 템플릿 적용"
-              >
-                <Wand2 className="size-4" /> 건조기 템플릿
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={resetAll}
-                className="gap-1"
-                title="현재 값으로 되돌리기"
-              >
-                <Undo2 className="size-4" /> 초기화
-              </Button>
-            </div>
-
-            {/* 세탁 코스 */}
-            <Card>
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold">세탁 코스</h3>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={addCourse}
-                    className="gap-1"
-                  >
-                    <Plus className="size-4" /> 코스 추가
-                  </Button>
-                </div>
-
-                <div className="grid gap-3">
-                  {courses.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      등록된 코스가 없습니다.
-                    </p>
-                  ) : (
-                    courses.map((c, idx) => (
-                      <CourseRow
-                        key={c.id}
-                        value={c}
-                        index={idx}
-                        onChange={(next) => patchCourse(c.id, next)}
-                        onRemove={() => removeCourse(c.id)}
-                      />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 추가 옵션 */}
-            <Card>
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold">추가 옵션</h3>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={addAddOn}
-                    className="gap-1"
-                  >
-                    <Plus className="size-4" /> 옵션 추가
-                  </Button>
-                </div>
-
-                <div className="grid gap-3">
-                  {addOns.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      등록된 옵션이 없습니다.
-                    </p>
-                  ) : (
-                    addOns.map((a, idx) => (
-                      <AddOnRow
-                        key={a.id}
-                        value={a}
-                        index={idx}
-                        onChange={(next) => patchAddOn(a.id, next)}
-                        onRemove={() => removeAddOn(a.id)}
-                      />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 미리보기 */}
-            <div className="text-sm text-muted-foreground px-1">
-              <span className="font-medium text-foreground">합계 미리보기</span>
-              : 코스 {fmtKRW(totalPreview.base)}원 + 옵션{" "}
-              {fmtKRW(totalPreview.opts)}원 ={" "}
-              <span className="ml-1 font-semibold text-foreground">
-                {fmtKRW(totalPreview.sum)}원
-              </span>
-            </div>
-          </div>
-        </ScrollArea>
-
-        <DialogFooter className="border-t px-6 py-4 flex items-center justify-between gap-2">
-          <div className="text-xs text-muted-foreground">
-            ⓘ 이름/가격만 필수입니다. 시간(분)은 비워 둘 수 있습니다.
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              className="gap-1"
-            >
-              <X className="size-4" /> 취소
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={resetAll}
-              className="gap-1"
-            >
-              <Undo2 className="size-4" /> 초기화
-            </Button>
-            <Button type="button" onClick={handleSave} className="gap-1">
-              <Save className="size-4" /> 저장
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* =========================
- * (선택) 데모 컴포넌트
- * 실제 사용처에서는 open/onClose/onSave만 연결하세요.
- * ========================= */
-export default function Demo() {
-  const [open, setOpen] = useState(true);
-  const [data, setData] = useState<DeviceOptions | null>(null);
-
-  return (
-    <div className="p-6 grid gap-4">
-      <div className="flex items-center gap-2">
-        <Button onClick={() => setOpen(true)}>옵션/가격 편집 열기</Button>
-        {data && (
-          <span className="text-sm text-muted-foreground">
-            최근 저장: 코스 {data.courses.length}개, 옵션 {data.addOns.length}개
-          </span>
-        )}
+    <div className="mx-auto w-full max-w-4xl">
+      {/* 상단 세그먼트 + 추가 버튼 */}
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="flex w-full max-w-md items-center rounded-full bg-slate-100 p-1">
+          <button
+            className="flex-1 rounded-full bg-white px-4 py-2 text-sm font-semibold shadow"
+            // 실제 탭 스위치 필요 시 onClick에 라우팅/상태 연결
+          >
+            + 기기관리
+          </button>
+          <button className="flex-1 rounded-full px-4 py-2 text-sm text-slate-600">
+            옵션 관리
+          </button>
+        </div>
+        <Button size="sm" className="rounded-full" onClick={addDevice}>
+          <Plus className="mr-1 h-4 w-4" /> 기기 추가
+        </Button>
       </div>
 
-      <OptionsPricingDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        onSave={(v) => setData(v)}
-        deviceName="세탁기1"
-        deviceKind="세탁기"
-      />
+      <h1 className="mb-4 text-2xl font-bold">기기관리</h1>
 
-      {data && (
-        <pre className="whitespace-pre-wrap text-xs bg-muted p-4 rounded-xl">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      )}
+      {/* 리스트 컨테이너 */}
+      <div className="rounded-2xl bg-sky-50 p-4 md:p-6 space-y-6">
+        {devices.map((d) => {
+          const courses = d.options?.courses ?? [];
+          const addOns = d.options?.addOns ?? [];
+          const hasAny = courses.length + addOns.length > 0;
+
+          return (
+            <div
+              key={d.id}
+              className="rounded-2xl bg-white p-4 md:p-6 shadow-sm"
+            >
+              {/* 카드 헤더 */}
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold">{d.name}</h2>
+                  <Badge variant="secondary">{d.kind}</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => openOptions(d.id)}
+                  >
+                    <Settings2 className="mr-1 h-4 w-4" />
+                    옵션설정
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => removeDevice(d.id)}
+                  >
+                    삭제
+                  </Button>
+                </div>
+              </div>
+
+              {/* 메타 정보 */}
+              <div className="mb-4 text-sm text-slate-600">
+                설정된 코스:{" "}
+                <span className="font-medium">{courses.length}개</span>
+                <span className="mx-2">·</span>
+                설정된 옵션:{" "}
+                <span className="font-medium">{addOns.length}개</span>
+              </div>
+
+              {/* 내용 */}
+              {hasAny ? (
+                <div className="space-y-5">
+                  {/* 세탁 코스 */}
+                  {courses.length > 0 && (
+                    <section>
+                      <h3 className="mb-2 text-sm font-semibold text-slate-700">
+                        세탁 코스
+                      </h3>
+                      <div className="space-y-2">
+                        {courses.map((c) => (
+                          <div
+                            key={c.id}
+                            className="flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-2 text-sm"
+                          >
+                            <span>
+                              {c.name}
+                              {typeof c.durationMin === "number" && (
+                                <span className="text-slate-500">
+                                  {" "}
+                                  ({c.durationMin}분)
+                                </span>
+                              )}
+                            </span>
+                            <span className="font-medium">
+                              {fmtKRW(c.price)}원
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 추가 옵션 */}
+                  {addOns.length > 0 && (
+                    <section>
+                      <h3 className="mb-2 text-sm font-semibold text-slate-700">
+                        추가 옵션
+                      </h3>
+                      <div className="space-y-2">
+                        {addOns.map((a) => (
+                          <div
+                            key={a.id}
+                            className="flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-2 text-sm"
+                          >
+                            <span>{a.name}</span>
+                            <span className="font-medium">
+                              {fmtKRW(a.price)}원
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              ) : (
+                // 비었을 때
+                <div className="rounded-2xl border-2 border-dashed border-slate-300 px-4 py-16 text-center text-sm text-slate-500">
+                  설정된 옵션이 없습니다.
+                  <div className="mt-3">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full"
+                      onClick={() => openOptions(d.id)}
+                    >
+                      옵션 추가하기
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 옵션 편집 모달 */}
+      {/* {editing && (
+        <OptionsPricingDialog
+          open={!!editing}
+          onClose={closeOptions}
+          onSave={saveOptions}
+          deviceName={editing.name}
+          deviceKind={editing.kind}
+          initial={editing.options ?? undefined}
+        />
+      )} */}
     </div>
   );
 }
