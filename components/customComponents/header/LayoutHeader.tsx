@@ -14,21 +14,27 @@ export default function LayoutHeader() {
       style={{ height: "70px" }}
     >
       <div
-        className="w-full md:w-3/5 flex items-center justify-between px-6 py-4 bg-white shadow"
+        className="w-full md:w-3/5 px-6 py-4 bg-white shadow grid grid-cols-12 items-center"
         style={{ height: "70px" }}
       >
         {/* 좌측 메뉴 아이콘 */}
-        <NavBarButton />
+        <div className="col-span-3 flex items-center">
+          <NavBarButton />
+        </div>
         {/* 중앙 타이틀 - 클릭 시 홈으로 이동 */}
-        <Link
-          href="/"
-          className="text-xl md:text-2xl font-bold text-gray-800 bg-transparent border-none cursor-pointer"
-          style={{ textDecoration: "none" }}
-        >
-          세탁톡톡
-        </Link>
+        <div className="col-span-6 flex justify-center">
+          <Link
+            href="/"
+            className="text-xl md:text-2xl font-bold text-gray-800 bg-transparent border-none cursor-pointer"
+            style={{ textDecoration: "none" }}
+          >
+            세탁톡톡
+          </Link>
+        </div>
         {/* 우측 버튼들 */}
-        <LayoutButton />
+        <div className="col-span-3 flex justify-end items-center">
+          <LayoutButton />
+        </div>
       </div>
     </header>
   );

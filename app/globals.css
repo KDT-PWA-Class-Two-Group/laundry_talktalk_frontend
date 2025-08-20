@@ -1,2 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+
+html,
+body {
+  font-family: 'Nanum Gothic', sans-serif;
+  background-color: #ffffff;
+  color: #000000;
+}
