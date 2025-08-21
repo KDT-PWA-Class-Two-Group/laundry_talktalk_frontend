@@ -1,27 +1,23 @@
-// components/admin/DeviceManagementPanel.tsx  (또는 DeviceManagementPage.tsx)
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
 
-/* =========================
- * 타입
- * ========================= */
-export type DeviceKind = "세탁기" | "건조기" | "기타";
-export interface Course {
+type DeviceKind = "세탁기" | "건조기" | "기타";
+interface Course {
   id: string;
   name: string;
   durationMin?: number;
   price: number;
 }
-export interface AddOn {
+interface AddOn {
   id: string;
   name: string;
   price: number;
 }
-export interface DeviceOptions {
+interface DeviceOptions {
   courses: Course[];
   addOns: AddOn[];
 }
@@ -32,14 +28,13 @@ interface Device {
   options?: DeviceOptions;
 }
 
-/* =========================
- * 유틸 & 템플릿
- * ========================= */
-const fmtKRW = (n: number) => new Intl.NumberFormat("ko-KR").format(n);
+const fmt = (n: number) => new Intl.NumberFormat("ko-KR").format(n);
 const uid = (p = "id") =>
   `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+const delBtn =
+  "h-8 rounded-full px-3 text-xs bg-red-600 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500";
 
-const TEMPLATES: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
+const TPL: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
   세탁기: {
     courses: [
       { id: uid("c"), name: "표준세탁(60분)", durationMin: 60, price: 5000 },
@@ -61,9 +56,6 @@ const TEMPLATES: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
   },
 };
 
-/* =========================
- * 공용 모달
- * ========================= */
 function Modal({
   open,
   title,
@@ -85,8 +77,8 @@ function Modal({
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h3 className="text-xl font-semibold">{title}</h3>
           <button
-            className="rounded-md p-1 hover:bg-slate-100"
             aria-label="닫기"
+            className="rounded-md p-1 hover:bg-slate-100"
             onClick={onClose}
           >
             <X className="h-5 w-5" />
@@ -99,9 +91,6 @@ function Modal({
   );
 }
 
-/* =========================
- * 옵션 선택(2차 팝업)
- * ========================= */
 function OptionPickerModal({
   open,
   kind,
@@ -113,39 +102,38 @@ function OptionPickerModal({
   kind: DeviceKind;
   initial: DeviceOptions;
   onClose: () => void;
-  onDone: (value: DeviceOptions) => void;
+  onDone: (v: DeviceOptions) => void;
 }) {
   const tpl =
     kind === "기타"
       ? { courses: [] as Course[], addOns: [] as AddOn[] }
-      : TEMPLATES[kind];
-
-  const [selCourses, setSelCourses] = useState<Set<string>>(
+      : TPL[kind];
+  const [selC, setSelC] = useState<Set<string>>(
     () => new Set(initial.courses.map((c) => c.id))
   );
-  const [selAddOns, setSelAddOns] = useState<Set<string>>(
+  const [selA, setSelA] = useState<Set<string>>(
     () => new Set(initial.addOns.map((a) => a.id))
   );
-
   useEffect(() => {
-    setSelCourses(new Set(initial.courses.map((c) => c.id)));
-    setSelAddOns(new Set(initial.addOns.map((a) => a.id)));
+    setSelC(new Set(initial.courses.map((c) => c.id)));
+    setSelA(new Set(initial.addOns.map((a) => a.id)));
   }, [open, initial]);
 
-  const toggle = (
+  const togg = (
     set: React.Dispatch<React.SetStateAction<Set<string>>>,
     id: string
   ) =>
-    set((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
+    set((p) => {
+      const n = new Set(p);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
     });
 
   const done = () => {
-    const courses = tpl.courses.filter((c) => selCourses.has(c.id));
-    const addOns = tpl.addOns.filter((a) => selAddOns.has(a.id));
-    onDone({ courses, addOns });
+    onDone({
+      courses: tpl.courses.filter((c) => selC.has(c.id)),
+      addOns: tpl.addOns.filter((a) => selA.has(a.id)),
+    });
     onClose();
   };
 
@@ -178,8 +166,8 @@ function OptionPickerModal({
                   <input
                     type="checkbox"
                     className="h-4 w-4"
-                    checked={selCourses.has(c.id)}
-                    onChange={() => toggle(setSelCourses, c.id)}
+                    checked={selC.has(c.id)}
+                    onChange={() => togg(setSelC, c.id)}
                   />
                   <span className="text-sm">
                     {c.name}
@@ -191,7 +179,7 @@ function OptionPickerModal({
                     )}
                   </span>
                 </div>
-                <span className="text-sm font-medium">{fmtKRW(c.price)}원</span>
+                <span className="text-sm font-medium">{fmt(c.price)}원</span>
               </label>
             ))}
           </div>
@@ -216,12 +204,12 @@ function OptionPickerModal({
                   <input
                     type="checkbox"
                     className="h-4 w-4"
-                    checked={selAddOns.has(a.id)}
-                    onChange={() => toggle(setSelAddOns, a.id)}
+                    checked={selA.has(a.id)}
+                    onChange={() => togg(setSelA, a.id)}
                   />
                   <span className="text-sm">{a.name}</span>
                 </div>
-                <span className="text-sm font-medium">{fmtKRW(a.price)}원</span>
+                <span className="text-sm font-medium">{fmt(a.price)}원</span>
               </label>
             ))}
           </div>
@@ -231,9 +219,6 @@ function OptionPickerModal({
   );
 }
 
-/* =========================
- * 기기 추가/수정 팝업 (공용)
- * ========================= */
 function DeviceEditorModal({
   open,
   initial,
@@ -241,47 +226,32 @@ function DeviceEditorModal({
   onSave,
 }: {
   open: boolean;
-  initial?: Device | null; // 없으면 추가, 있으면 수정
+  initial?: Device | null;
   onClose: () => void;
-  onSave: (device: Device) => void;
+  onSave: (d: Device) => void;
 }) {
   const isEdit = !!initial;
-
   const [name, setName] = useState(initial?.name ?? "");
   const [kind, setKind] = useState<DeviceKind>(initial?.kind ?? "세탁기");
-  const [options, setOptions] = useState<DeviceOptions>(
+  const [opt, setOpt] = useState<DeviceOptions>(
     initial?.options ?? { courses: [], addOns: [] }
   );
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pick, setPick] = useState(false);
 
   useEffect(() => {
     if (open) {
       setName(initial?.name ?? "");
       setKind(initial?.kind ?? "세탁기");
-      setOptions(initial?.options ?? { courses: [], addOns: [] });
-      setPickerOpen(false);
+      setOpt(initial?.options ?? { courses: [], addOns: [] });
+      setPick(false);
     }
   }, [open, initial]);
-
-  const handleKindChange = (next: DeviceKind) => {
-    setKind(next);
-    setOptions({ courses: [], addOns: [] }); // 타입 바뀌면 선택 초기화
-  };
-
   const save = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return alert("기기명을 입력하세요.");
-
-    onSave({
-      id: initial?.id ?? uid("d"),
-      name: trimmed,
-      kind,
-      options,
-    });
+    const nm = name.trim();
+    if (!nm) return alert("기기명을 입력하세요.");
+    onSave({ id: initial?.id ?? uid("d"), name: nm, kind, options: opt });
     onClose();
   };
-
-  const selectedCountText = `${options.courses.length}개 코스, ${options.addOns.length}개 옵션`;
 
   return (
     <>
@@ -307,32 +277,33 @@ function DeviceEditorModal({
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-
           <div className="grid gap-2">
             <div className="text-base font-semibold">기기 타입</div>
             <select
               className="h-11 w-full rounded-xl border bg-slate-50 px-3"
               value={kind}
-              onChange={(e) => handleKindChange(e.target.value as DeviceKind)}
+              onChange={(e) => {
+                setKind(e.target.value as DeviceKind);
+                setOpt({ courses: [], addOns: [] });
+              }}
             >
               <option value="세탁기">세탁기</option>
               <option value="건조기">건조기</option>
               <option value="기타">기타</option>
             </select>
           </div>
-
           <div className="grid gap-2">
             <div className="text-base font-semibold">옵션 설정</div>
             <div className="flex items-center gap-2">
               <input
                 className="h-11 flex-1 rounded-xl border bg-slate-50 px-3"
                 readOnly
-                value={selectedCountText}
+                value={`${opt.courses.length}개 코스, ${opt.addOns.length}개 옵션`}
               />
               <Button
                 type="button"
                 className="h-11 rounded-xl"
-                onClick={() => setPickerOpen(true)}
+                onClick={() => setPick(true)}
               >
                 열기
               </Button>
@@ -342,40 +313,33 @@ function DeviceEditorModal({
       </Modal>
 
       <OptionPickerModal
-        open={pickerOpen}
+        open={pick}
         kind={kind}
-        initial={options}
-        onClose={() => setPickerOpen(false)}
-        onDone={(v) => setOptions(v)}
+        initial={opt}
+        onClose={() => setPick(false)}
+        onDone={(v) => setOpt(v)}
       />
     </>
   );
 }
 
-/* =========================
- * 메인 패널
- * ========================= */
 export default function DeviceManagementPanel() {
-  const [devices, setDevices] = useState<Device[]>([
-    { id: "d1", name: "세탁기1", kind: "세탁기", options: TEMPLATES["세탁기"] },
-    { id: "d2", name: "건조기1", kind: "건조기", options: TEMPLATES["건조기"] },
+  const [list, setList] = useState<Device[]>([
+    { id: "d1", name: "세탁기1", kind: "세탁기", options: TPL["세탁기"] },
+    { id: "d2", name: "건조기1", kind: "건조기", options: TPL["건조기"] },
     { id: "d3", name: "세탁기1", kind: "세탁기" },
   ]);
-
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Device | null>(null);
 
-  const removeDevice = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation(); // 카드 클릭 전파 방지
+  const remove = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (!confirm("해당 기기를 삭제할까요?")) return;
-    setDevices((prev) => prev.filter((d) => d.id !== id));
+    setList((p) => p.filter((d) => d.id !== id));
   };
-
-  const openEdit = (d: Device) => setEditing(d);
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      {/* 타이틀 + 기기 추가 버튼 */}
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">기기관리</h1>
         <Button
@@ -387,17 +351,15 @@ export default function DeviceManagementPanel() {
         </Button>
       </div>
 
-      {/* 리스트 */}
       <div className="space-y-6 rounded-2xl bg-sky-50 p-4 md:p-6">
-        {devices.map((d) => {
-          const courses = d.options?.courses ?? [];
-          const addOns = d.options?.addOns ?? [];
-          const hasAny = courses.length + addOns.length > 0;
-
+        {list.map((d) => {
+          const cs = d.options?.courses ?? [];
+          const as = d.options?.addOns ?? [];
+          const has = cs.length + as.length > 0;
           return (
             <div
               key={d.id}
-              onClick={() => openEdit(d)}
+              onClick={() => setEditing(d)}
               className="rounded-2xl bg-white p-4 md:p-6 shadow-sm transition hover:ring-2 hover:ring-sky-300 cursor-pointer"
             >
               <div className="mb-2 flex items-center justify-between">
@@ -405,34 +367,30 @@ export default function DeviceManagementPanel() {
                   <h2 className="text-xl font-semibold">{d.name}</h2>
                   <Badge variant="secondary">{d.kind}</Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="h-8 rounded-full px-3 text-xs bg-red-600 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500"
-                    onClick={(e) => removeDevice(d.id, e)}
-                  >
-                    삭제
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  className={delBtn}
+                  onClick={(e) => remove(d.id, e)}
+                >
+                  삭제
+                </Button>
               </div>
 
               <div className="mb-4 text-sm text-slate-600">
-                설정된 코스:{" "}
-                <span className="font-medium">{courses.length}개</span>
+                설정된 코스: <span className="font-medium">{cs.length}개</span>
                 <span className="mx-2">·</span>
-                설정된 옵션:{" "}
-                <span className="font-medium">{addOns.length}개</span>
+                설정된 옵션: <span className="font-medium">{as.length}개</span>
               </div>
 
-              {hasAny ? (
+              {has ? (
                 <div className="space-y-5">
-                  {courses.length > 0 && (
+                  {cs.length > 0 && (
                     <section>
                       <h3 className="mb-2 text-sm font-semibold text-slate-700">
                         세탁 코스
                       </h3>
                       <div className="space-y-2">
-                        {courses.map((c) => (
+                        {cs.map((c) => (
                           <div
                             key={c.id}
                             className="flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-2 text-sm"
@@ -447,28 +405,27 @@ export default function DeviceManagementPanel() {
                               )}
                             </span>
                             <span className="font-medium">
-                              {fmtKRW(c.price)}원
+                              {fmt(c.price)}원
                             </span>
                           </div>
                         ))}
                       </div>
                     </section>
                   )}
-
-                  {addOns.length > 0 && (
+                  {as.length > 0 && (
                     <section>
                       <h3 className="mb-2 text-sm font-semibold text-slate-700">
                         추가 옵션
                       </h3>
                       <div className="space-y-2">
-                        {addOns.map((a) => (
+                        {as.map((a) => (
                           <div
                             key={a.id}
                             className="flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-2 text-sm"
                           >
                             <span>{a.name}</span>
                             <span className="font-medium">
-                              {fmtKRW(a.price)}원
+                              {fmt(a.price)}원
                             </span>
                           </div>
                         ))}
@@ -486,23 +443,17 @@ export default function DeviceManagementPanel() {
         })}
       </div>
 
-      {/* 추가 / 수정 모달 */}
       <DeviceEditorModal
         open={createOpen}
         initial={null}
         onClose={() => setCreateOpen(false)}
-        onSave={(device) => setDevices((prev) => [device, ...prev])}
+        onSave={(d) => setList((p) => [d, ...p])}
       />
-
       <DeviceEditorModal
         open={!!editing}
         initial={editing ?? undefined}
         onClose={() => setEditing(null)}
-        onSave={(device) => {
-          setDevices((prev) =>
-            prev.map((d) => (d.id === device.id ? device : d))
-          );
-        }}
+        onSave={(d) => setList((p) => p.map((x) => (x.id === d.id ? d : x)))}
       />
     </div>
   );
