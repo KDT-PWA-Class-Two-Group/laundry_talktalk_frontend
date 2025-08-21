@@ -21,7 +21,29 @@ export default function PriceEstimatorForm() {
     time: number;
   } | null>(null);
 
-  const handleEstimate = () => {
+  const handleEstimate = async () => {
+    try {
+    // 나중에 백엔드가 준비되면 주석 해제
+    /*
+    const res = await fetch("/api/laundry/estimate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        store: search,
+        washCourse,
+        washOption,
+        useDry,
+        dryTime,
+        dryOption,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "계산 실패");
+    setResult(data.data);
+    return;
+    */
+
+    // 🔹 현재는 프론트 계산 fallback
     let washPrice =
       washCourse === "표준" ? 4000 : washCourse === "이불" ? 6000 : 5000;
     if (washOption === "헹굼 1회 추가") washPrice += 500;
@@ -41,6 +63,10 @@ export default function PriceEstimatorForm() {
       total: washPrice + dryPrice,
       time: 60 + dryMinutes,
     });
+    } catch (err) {
+    console.error(err);
+    alert("예상 비용 계산 중 오류가 발생했습니다.");
+  }
   };
 
   return (

@@ -16,12 +16,29 @@ export default function FindPwForm() {
     setLoading(true);
     setError("");
     setSent(false);
-    // TODO: 비밀번호 찾기 API 연동 (이메일로 링크 발송)
-    setTimeout(() => {
-      setSent(true);
-      setLoading(false);
-    }, 1000);
-  };
+
+      try {
+        const res = await fetch("/api/auth/find-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store", // 🔹 캐시 방지
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await res.json().catch(() => ({} as any));
+
+        if (!res.ok) {
+          throw new Error(data?.message || data?.error || "비밀번호 찾기 실패");
+        }
+
+        setSent(true); // 성공 시 알림 표시
+      } catch (err: any) {
+        setError(err?.message ?? "비밀번호 찾기 요청 중 오류 발생");
+      } finally {
+        setLoading(false);
+      }
+    };
+
 
   return (
     <form
