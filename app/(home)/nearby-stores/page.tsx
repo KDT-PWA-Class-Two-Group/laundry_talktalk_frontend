@@ -1,4 +1,5 @@
 import { SearchMap } from "@/components/customComponents/nearby/searchmap";
+import Script from "next/script";
 
 export default function FavoritesStorePage() {
   return (
@@ -21,8 +22,10 @@ export default function FavoritesStorePage() {
 
       {/* 지도 영역 */}
       <div className="border rounded-lg p-4 border-gray-200 bg-white shadow-sm">
-        <div className="text-center text-gray-500">여기에 지도가 표시됩니다.</div>
+        <div id="map" className="w-full h-64"></div>
       </div>
+
+
     </div>
   );
 }
