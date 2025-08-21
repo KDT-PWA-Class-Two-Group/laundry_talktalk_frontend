@@ -37,14 +37,9 @@ export default function RegionSelect({
     부산: [{ name: "해운대구" }, { name: "부산진구" }, { name: "남구" }],
   };
 
-  // 상태
+  // 상태 (단일 선택)
   const [city, setCity] = useState<string>(value.city);
-  const [districts, setDistricts] = useState<string[]>(value.districts);
-
-  const toggle = (d: string) =>
-    setDistricts((prev) =>
-      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
-    );
+  const [district, setDistrict] = useState<string>(value.districts[0] ?? "");
 
   return (
     <div
@@ -62,7 +57,7 @@ export default function RegionSelect({
 
       {/* 본문 */}
       <div className="grid grid-cols-[220px_1fr]">
-        {/* 좌측: 시/도 검색 & 리스트 (shadcn Command) */}
+        {/* 좌측: 시/도 검색 & 리스트 */}
         <div className="h-[360px] border-r p-3">
           <Command className="rounded-xl border">
             <CommandInput placeholder="시/도 검색..." />
@@ -74,7 +69,10 @@ export default function RegionSelect({
                     <CommandItem
                       key={c.key}
                       value={c.key}
-                      onSelect={() => setCity(c.key)}
+                      onSelect={() => {
+                        setCity(c.key);
+                        setDistrict(""); // 시/도 변경 시 선택 초기화
+                      }}
                       className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${
                         city === c.key ? "bg-slate-100 font-semibold" : ""
                       }`}
@@ -85,7 +83,7 @@ export default function RegionSelect({
                           width="16"
                           height="16"
                           viewBox="0 0 24 24"
-                          aria-hidden
+                          aria-hidden="true"
                         >
                           <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
                         </svg>
@@ -98,14 +96,14 @@ export default function RegionSelect({
           </Command>
         </div>
 
-        {/* 우측: 구/군 체크 (shadcn Checkbox + ScrollArea) */}
+        {/* 우측: 구/군 단일 선택 (Checkbox로 강제 단일화) */}
         <div className="h-[360px] p-3">
           <div className="mb-2 text-sm font-medium">{city}</div>
 
           <ScrollArea className="max-h-[296px] pr-1">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {map[city]?.map((d) => {
-                const checked = districts.includes(d.name);
+                const checked = district === d.name;
                 return (
                   <label
                     key={d.name}
@@ -113,7 +111,11 @@ export default function RegionSelect({
                   >
                     <Checkbox
                       checked={checked}
-                      onCheckedChange={() => toggle(d.name)}
+                      // CheckedState: boolean | "indeterminate"
+                      onCheckedChange={(ck) => {
+                        const isOn = ck === true;
+                        setDistrict(isOn ? d.name : "");
+                      }}
                       className="border-slate-300"
                     />
                     <span>{d.name}</span>
@@ -127,7 +129,7 @@ export default function RegionSelect({
             <Button
               className="h-9"
               variant="outline"
-              onClick={() => setDistricts([])}
+              onClick={() => setDistrict("")}
             >
               초기화
             </Button>
@@ -136,9 +138,10 @@ export default function RegionSelect({
               onClick={() =>
                 onApply({
                   city,
-                  districts: districts.length ? districts : ["전체"],
+                  districts: district ? [district] : ["전체"], // 기존 시그니처 유지
                 })
               }
+              disabled={!city}
             >
               적용
             </Button>
