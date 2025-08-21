@@ -15,17 +15,8 @@ export default function FavoritesStorePage() {
         <p>※ 위치 정보 접근 동의가 필요합니다.</p>
       </div>
 
-      {/* 검색 영역 */}
-      <div className="border rounded-lg p-4 mb-6 border-gray-200 bg-white shadow-sm">
         <SearchMap />
-      </div>
-
-      {/* 지도 영역 */}
-      <div className="border rounded-lg p-4 border-gray-200 bg-white shadow-sm">
-        <div id="map" className="w-full h-64"></div>
-      </div>
-
-
+        
     </div>
   );
 }
