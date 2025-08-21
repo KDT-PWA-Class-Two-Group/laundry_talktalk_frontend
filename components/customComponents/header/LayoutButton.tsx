@@ -13,7 +13,7 @@ export default function LayoutButton() {
     router.push("/mypage/edit-profile");
   };
   const loginPageRouter = () => {
-    router.push("/login");
+    router.push("/auth/sign-in");
   };
 
   return (
