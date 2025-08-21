@@ -1,13 +1,13 @@
 "use client";
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import React, { useState } from "react";
 
 // 이용 내역 데이터의 타입을 정의합니다.
 interface UsageItem {
@@ -113,7 +113,7 @@ const getStatusClasses = (status: UsageItem["status"]) => {
       return "bg-gray-50 border-gray-200 text-gray-700";
   }
 };
-
+//분리해야함
 const UsageHistoryCard: React.FC<{
   item: UsageItem;
   onActionClick: () => void;
@@ -370,7 +370,10 @@ export default function UsageHistoryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 예약 취소 확인 모달 */}
+      {/* 예약 취소 확인 모달 
+      예를들어 <ReservationDiaglog open={showCancelModal} onOpenChange={setShowCancelModal} />
+      이런식으로 이름 만들어서 분리하고 불러오면 되융! */}
+      
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
         <DialogContent className="bg-white shadow-xl">
           <DialogHeader className="text-center">
