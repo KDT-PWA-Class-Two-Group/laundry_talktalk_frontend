@@ -31,9 +31,13 @@ export function SearchMap() {
   }
 
   return (
-    <div className="flex w-full max-w-sm items-center gap-2">
+  <div className="w-full max-w-sm">
+    <div className="flex items-center gap-2">
       <Input type="text" placeholder="주소를 입력하세요" />
-      <Button type="button" variant="outline" className="bg-sky-500 text-white px-3 py-1 rounded"
+      <Button
+        type="button"
+        variant="outline"
+        className="bg-sky-500 text-white px-3 py-1 rounded"
         onClick={() => alert("주소 검색 기능은 아직 구현되지 않았습니다.")}
       >
         검색
@@ -46,8 +50,12 @@ export function SearchMap() {
       >
         위치
       </Button>
-      
-      {location && <p className="text-sm text-gray-600 mt-2">{location}</p>}
     </div>
-  )
+
+
+    {location && (
+      <p className="text-sm text-gray-600 mt-2">{location}</p>
+    )}
+  </div>
+)
 }
