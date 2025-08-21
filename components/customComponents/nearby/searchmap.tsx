@@ -19,19 +19,55 @@ export function SearchMap() {
   const handleGetLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords
-          setLocation(`위도: ${latitude}, 경도: ${longitude}`)
-          alert(`위치 정보: 위도 ${latitude}, 경도 ${longitude}`)
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          setLocation(`위도: ${latitude}, 경도: ${longitude}`);
+          alert(`위치 정보: 위도 ${latitude}, 경도 ${longitude}`);
+
+          // 위치 정보를 /api/nearby로 POST 요청
+          try {
+            const response = await fetch('/api/nearby', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ latitude, longitude }),
+            });
+            if (!response.ok) {
+              throw new Error('서버에 위치 정보를 전송하는 데 실패했습니다.');
+            }
+            const data = await response.json();
+            console.log('서버 응답:', data);
+          } catch (error) {
+            console.error('위치 정보 전송 오류:', error);
+          }
         },
         (error) => alert("위치 정보를 가져올 수 없습니다: " + error.message)
-      )
+      );
     }
   }
 
-  const handlePinClick = (store: typeof nearbyStores[0]) => {
+  const handlePinClick = async (store: typeof nearbyStores[0], latitude: number, longitude: number) => {
     setSelectedStore(store)
     setIsModalOpen(true)
+    try {
+      const response = await fetch('/api/nearby', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latitude, longitude }),
+      });
+
+      if (!response.ok) {
+        throw new Error('서버에 매장 정보를 전송하는 데 실패했습니다.');
+      }
+
+      const data = await response.json();
+      console.log('서버 응답:', data);
+    } catch (error) {
+      console.error('매장 정보 전송 오류:', error);
+    }
   }
 
   const closeModal = () => {
@@ -72,19 +108,26 @@ export function SearchMap() {
               key={store.id}
               className="absolute flex flex-col items-center"
               style={{
-                top: `${Math.random() * 80}%`,
-                left: `${Math.random() * 80}%`,
+              // 임시로 실제 위도/경도 값을 37~38, 127~128 범위에서 랜덤 생성
+              top: `${((store.id * 12345) % 100) * 0.8}%`,
+              left: `${((store.id * 54321) % 100) * 0.8}%`,
               }}
             >
               <button
-                className="bg-red-500 w-6 h-6 rounded-full text-white text-xs flex items-center justify-center"
-                onClick={() => handlePinClick(store)}
+              className="bg-red-500 w-6 h-6 rounded-full text-white text-xs flex items-center justify-center"
+              onClick={() =>
+                handlePinClick(
+                store,
+                37 + Math.random(), // 임시 위도
+                127 + Math.random() // 임시 경도
+                )
+              }
               >
-                <MapPin width={14} height={14} />
+              <MapPin width={14} height={14} />
               </button>
-              {/* 매장 이름 라벨 */}
+              {/* 매장 이름 라벨 및 위도/경도 표기 */}
               <span className="mt-1 text-xs bg-white px-1 rounded shadow">
-                {store.name}
+              {store.name}
               </span>
             </div>
           ))}
