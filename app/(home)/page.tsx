@@ -14,39 +14,53 @@ export default function Home() {
 
       {/* 서비스 안내 카드 */}
       <div className="flex gap-2 mb-8 w-full max-w-xl justify-center px-2">
-        <div className="bg-white rounded-lg shadow-md w-1/2 p-4 flex flex-col items-center relative aspect-square ">
-          <div className="z-10 flex items-center justify-center flex-col h-full">
-            <div className="font-semibold mb-1 text-sky-800">세탁 예약</div>
-            <div className="text-xs text-sky-800 mb-2 font-bold">
-              원하는 매장과 시간에 세탁 서비스 예약이 가능합니다.
+        <div className="bg-white rounded-lg shadow-md w-1/2 p-4 flex flex-col items-center relative aspect-square">
+          <div className="flex flex-col items-center justify-between">
+            <div className="flex-1 flex flex-col items-center justify-center w-full">
+              <div className="font-semibold mb-1 text-sky-800">세탁 예약</div>
+              <div className="text-xs text-sky-800 mb-2 font-bold">
+                원하는 매장과 시간에 세탁 서비스 예약이 가능합니다.
+              </div>
+              <Link
+                href={"/laundry-reservation"}
+                className="flex justify-center w-full"
+              >
+                <Button className="w-full bg-sky-50 shadow-sky-50 h-8 text-[10px]">
+                  지금 예약하기
+                </Button>
+              </Link>
             </div>
-            <Link href={'/laundry-reservation'} className="flex justify-center w-full">
-              <Button className="w-full bg-sky-50 shadow-sky-50 h-8 text-[10px]">지금 예약하기</Button>
-            </Link>
+
+            <Image
+              src="/images/wash1.jpg"
+              alt="세탁 예약"
+              fill
+              className="object-cover rounded opacity-10"
+            />
           </div>
-          <Image
-            src="/images/wash1.jpg"
-            alt="세탁 예약"
-            fill
-            className="w-full object-cover rounded mb-2 opacity-50"
-          />
         </div>
         <div className="bg-white rounded-lg shadow-md w-1/2 p-4 flex flex-col items-center relative aspect-square">
-          <div className="z-10 flex items-center justify-center flex-col h-full">
-            <div className="font-semibold mb-1 text-sky-800">매장별 정보제공</div>
-            <div className="text-xs text-sky-800 mb-2 font-bold">
-              가까운 매장과 다양한 세탁기 정보를 확인하세요.
+          <div className="flex flex-col items-center justify-between">
+            <div className="flex-1 flex flex-col items-center justify-center w-full">
+              <div className="font-semibold mb-1 text-sky-800">
+                매장별 정보제공
+              </div>
+              <div className="text-xs text-sky-800 mb-2 font-bold">
+                가까운 매장과 다양한 세탁기 정보를 확인하세요.
+              </div>
+              <Link href={"/store-info"} className="flex justify-center w-full">
+                <Button className="w-full bg-sky-50 shadow-sky-50 h-8 text-[10px]">
+                  매장정보 보기
+                </Button>
+              </Link>
             </div>
-            <Link href={'/store-info'} className="flex justify-center w-full">
-              <Button className="w-full bg-sky-50 shadow-sky-50 h-8 text-[10px]">매장정보 보기</Button>
-            </Link>
+            <Image
+              src="/images/wash2.jpg"
+              alt="매장 안내"
+              fill
+              className="object-cover rounded opacity-10"
+            />
           </div>
-          <Image
-            src="/images/wash2.jpg"
-            alt="매장 안내"
-            fill
-            className="w-full object-cover rounded mb-2 opacity-50"
-          />
         </div>
       </div>
 
