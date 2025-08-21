@@ -1,6 +1,6 @@
 // app/admin/page.tsx
-import AdminShell from "@/components/admin/AdminShell";
+import AdminKategorie from "@/components/admin/AdminKategorie";
 
 export default function Page() {
-  return <AdminShell />;
+  return <AdminKategorie />;
 }
