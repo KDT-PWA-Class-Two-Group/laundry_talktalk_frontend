@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import StoreSelect from "@/components/admin/StoreSelect";
-import NoticeSection from "@/components/admin/NoticeSection";
-import ReviewSection from "@/components/admin/ReviewSection";
+import NoticeSection from "@/components/admin/NoticeAndPromotion";
+import ReviewSection from "@/components/admin/Review Management";
 
 // 패널 컴포넌트(default export)
 import DeviceManagementPanel from "@/components/admin/DeviceManagementPanel";
