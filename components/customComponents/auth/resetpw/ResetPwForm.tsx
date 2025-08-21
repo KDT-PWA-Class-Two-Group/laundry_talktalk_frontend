@@ -26,12 +26,29 @@ export default function ResetPwForm({ token: initialToken }: { token?: string })
     }
 
     setLoading(true);
-    // TODO: 비밀번호 재설정 API 연동
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ token, newPassword }),
+      });
+
+      const data = await res.json().catch(() => ({} as any));
+
+      if (!res.ok) {
+        throw new Error(data?.message || data?.error || "비밀번호 재설정 실패");
+      }
+
       setSuccess(true);
+    } catch (err: any) {
+      setError(err?.message ?? "비밀번호 재설정 중 오류 발생");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
+
+
 
   return (
     <form

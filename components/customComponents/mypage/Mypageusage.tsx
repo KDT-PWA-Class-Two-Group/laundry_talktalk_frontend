@@ -1,77 +1,14 @@
+// src/app/usage-history/page.tsx
 "use client";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import React, { useState } from "react";
 
-// 이용 내역 데이터의 타입을 정의합니다.
-interface UsageItem {
-  id: number;
-  status: "ongoing" | "completed" | "cancelled" | "reviewed";
-  date: string;
-  time: string;
-  storeName: string;
-  reservationDate: string;
-  duration: string;
-  code: string;
-  price: string;
-}
+// 올바른 위치에서 인터페이스와 모의 데이터를 불러옵니다.
+import { UsageItem, initialMockData } from "@/types/mypage";
 
-// 예시 데이터입니다. 실제로는 API 호출로 받아와야 합니다.
-const initialMockData: UsageItem[] = [
-  {
-    id: 1,
-    status: "ongoing",
-    date: "2025.08.14 | 13시 10분",
-    storeName: "크린토피아 월평점",
-    reservationDate: "2025.08.14 | 14:00 ~ 18:00",
-    duration:
-      "총 소요시간: 3시간 30분 | 세탁 시간: 1시간 30분 | 건조 시간: 2시간",
-    code: "코스: 이불 빨래, 건조",
-    price: "이용 가격: 30,000원",
-    time: "",
-  },
-  {
-    id: 2,
-    status: "completed",
-    date: "2025.08.10 | 15시 10분",
-    storeName: "크린토피아 둔산점",
-    reservationDate: "2025.08.10 | 14:00 ~ 18:00",
-    duration:
-      "총 소요시간: 2시간 00분 | 세탁 시간: 1시간 00분 | 건조 시간: 1시간",
-    code: "코스: 일반 세탁",
-    price: "이용 가격: 20,000원",
-    time: "",
-  },
-  {
-    id: 3,
-    status: "cancelled",
-    date: "2025.08.07 | 13시 10분",
-    storeName: "크린토피아 월평점",
-    reservationDate: "2025.08.07 | 10:00 ~ 12:00",
-    duration: "총 소요시간: 1시간 30분 | 세탁 시간: 45분 | 건조 시간: 45분",
-    code: "코스: 운동복 세탁",
-    price: "이용 가격: 15,000원",
-    time: "",
-  },
-  {
-    id: 4,
-    status: "reviewed",
-    date: "2025.08.05 | 11시 00분",
-    storeName: "크린토피아 유성점",
-    reservationDate: "2025.08.05 | 09:00 ~ 11:00",
-    duration:
-      "총 소요시간: 4시간 00분 | 세탁 시간: 2시간 00분 | 건조 시간: 2시간",
-    code: "코스: 드라이클리닝",
-    price: "이용 가격: 40,000원",
-    time: "",
-  },
-];
+// 분리된 모달 컴포넌트들을 불러옵니다.
+import { UsageReviewModal } from "./review_modal";
+import { UsageCancelModal } from "./cancle_modal";
 
 const getStatusText = (status: UsageItem["status"]) => {
   switch (status) {
@@ -113,12 +50,13 @@ const getStatusClasses = (status: UsageItem["status"]) => {
       return "bg-gray-50 border-gray-200 text-gray-700";
   }
 };
-//분리해야함
+
 const UsageHistoryCard: React.FC<{
   item: UsageItem;
   onActionClick: () => void;
-}> = ({ item, onActionClick }) => {
-  const isButtonDisabled = item.status === "reviewed";
+  isProcessing: boolean;
+}> = ({ item, onActionClick, isProcessing }) => {
+  const isButtonDisabled = item.status === "reviewed" || isProcessing;
 
   return (
     <div
@@ -146,7 +84,7 @@ const UsageHistoryCard: React.FC<{
                 : "bg-gray-200 hover:bg-gray-300 text-gray-700 font-normal text-sm px-3 py-1 rounded"
             }
           >
-            {getButtonText(item.status)}
+            {isProcessing ? "처리 중..." : getButtonText(item.status)}
           </Button>
         )}
       </div>
@@ -174,7 +112,32 @@ export default function UsageHistoryPage() {
   const [rating, setRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState("");
 
-  const [usageData, setUsageData] = useState<UsageItem[]>(initialMockData);
+  const [usageData, setUsageData] = useState<UsageItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // 1. 페이지 로드 시 이용 내역을 가져옵니다.
+  useEffect(() => {
+    const fetchUsageHistory = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/mypage/usage-history");
+        if (!response.ok)
+          throw new Error("이용 내역을 불러오는 데 실패했습니다.");
+        const data: UsageItem[] = await response.json();
+        setUsageData(data);
+      } catch (error) {
+        console.error("Fetch 에러:", error);
+        setIsError(true);
+        // API 연동 실패 시 목 데이터로 대체
+        setUsageData(initialMockData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUsageHistory();
+  }, []);
 
   const ongoingHistory = usageData.filter((item) => item.status === "ongoing");
   const pastHistory = usageData.filter((item) => item.status !== "ongoing");
@@ -192,8 +155,19 @@ export default function UsageHistoryPage() {
     }
   };
 
-  const handleCancelConfirmed = () => {
-    if (selectedItemForAction) {
+  // 2. 예약 취소 확인 핸들러 (fetch 로직 추가)
+  const handleCancelConfirmed = async () => {
+    if (!selectedItemForAction) return;
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        `/api/mypage/usage-history/cancel/${selectedItemForAction.id}`,
+        {
+          method: "PUT",
+        }
+      );
+      if (!response.ok) throw new Error("예약 취소 요청에 실패했습니다.");
+
       const updatedData = usageData.map((dataItem) =>
         dataItem.id === selectedItemForAction.id
           ? { ...dataItem, status: "cancelled" }
@@ -201,17 +175,29 @@ export default function UsageHistoryPage() {
       ) as UsageItem[];
       setUsageData(updatedData);
       console.log("예약 취소 완료:", updatedData);
+    } catch (error) {
+      console.error("예약 취소 API 에러:", error);
+      alert("예약 취소에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setIsProcessing(false);
+      setShowCancelModal(false);
     }
-    setShowCancelModal(false);
   };
 
-  const handleReviewSubmit = () => {
-    if (selectedItemForAction) {
-      console.log("리뷰 제출:", {
-        itemId: selectedItemForAction.id,
-        rating: rating,
-        reviewText: reviewText,
-      });
+  // 3. 리뷰 제출 핸들러 (fetch 로직 추가)
+  const handleReviewSubmit = async () => {
+    if (!selectedItemForAction) return;
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        `/api/mypage/usage-history/review/${selectedItemForAction.id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rating, reviewText }),
+        }
+      );
+      if (!response.ok) throw new Error("리뷰 제출에 실패했습니다.");
 
       const updatedData = usageData.map((item) =>
         item.id === selectedItemForAction.id
@@ -219,12 +205,19 @@ export default function UsageHistoryPage() {
           : item
       ) as UsageItem[];
       setUsageData(updatedData);
+      console.log("리뷰 제출 완료:", {
+        itemId: selectedItemForAction.id,
+        rating: rating,
+        reviewText: reviewText,
+      });
+    } catch (error) {
+      console.error("리뷰 제출 API 에러:", error);
+      alert("리뷰 제출에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setIsProcessing(false);
+      setShowReviewModal(false);
     }
-
-    setShowReviewModal(false);
   };
-
-  const isSubmitDisabled = rating === 0 || reviewText.trim() === "";
 
   return (
     <>
@@ -237,12 +230,21 @@ export default function UsageHistoryPage() {
           <div className="w-full max-w-xl flex flex-col items-start gap-8 px-4 sm:px-6">
             <h2 className="text-xl font-semibold mt-8">예약 내역</h2>
             <div className="w-full flex flex-col gap-6">
-              {ongoingHistory.length > 0 ? (
+              {isLoading ? (
+                <p className="text-gray-500 text-center w-full">
+                  이용 내역을 불러오는 중입니다...
+                </p>
+              ) : isError ? (
+                <p className="text-red-500 text-center w-full">
+                  데이터를 불러오는 데 실패했습니다.
+                </p>
+              ) : ongoingHistory.length > 0 ? (
                 ongoingHistory.map((item) => (
                   <UsageHistoryCard
                     key={item.id}
                     item={item}
                     onActionClick={() => handleActionButtonClick(item)}
+                    isProcessing={isProcessing}
                   />
                 ))
               ) : (
@@ -254,12 +256,13 @@ export default function UsageHistoryPage() {
 
             <h2 className="text-xl font-semibold mt-4">과거 이용 내역</h2>
             <div className="w-full flex flex-col gap-6">
-              {pastHistory.length > 0 ? (
+              {isLoading ? null : isError ? null : pastHistory.length > 0 ? ( // '예약 내역'과 동일한 로딩 메시지 사용 // '예약 내역'과 동일한 에러 메시지 사용
                 pastHistory.map((item) => (
                   <UsageHistoryCard
                     key={item.id}
                     item={item}
                     onActionClick={() => handleActionButtonClick(item)}
+                    isProcessing={isProcessing}
                   />
                 ))
               ) : (
@@ -272,133 +275,22 @@ export default function UsageHistoryPage() {
         </div>
       </div>
 
-      {/* 리뷰 작성 모달 */}
-      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
-        <DialogContent className="bg-white shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-center text-lg font-bold">
-              리뷰 작성
-            </DialogTitle>
-          </DialogHeader>
-          {selectedItemForAction && (
-            <div className="flex flex-col gap-4 py-4 px-2">
-              <div className="text-sm space-y-1">
-                <div className="flex justify-between text-gray-700">
-                  <span className="font-semibold">매장</span>
-                  <span>{selectedItemForAction.storeName}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span className="font-semibold">내용</span>
-                  <span>{selectedItemForAction.code}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span className="font-semibold">이용일</span>
-                  <span>{selectedItemForAction.reservationDate}</span>
-                </div>
-              </div>
+      <UsageReviewModal
+        open={showReviewModal}
+        onOpenChange={setShowReviewModal}
+        item={selectedItemForAction}
+        rating={rating}
+        onRatingChange={setRating}
+        reviewText={reviewText}
+        onReviewTextChange={setReviewText}
+        onSubmit={handleReviewSubmit}
+      />
 
-              <div className="flex flex-col items-center gap-2 mt-4">
-                <span className="text-sm font-semibold">
-                  별점을 선택해주세요!
-                </span>
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, index) => {
-                    const starValue = index + 1;
-                    return (
-                      <div key={index} className="relative flex items-center">
-                        {/* 반쪽 별점 */}
-                        <div
-                          className="absolute w-1/2 h-full top-0 left-0 cursor-pointer overflow-hidden"
-                          onMouseMove={() => setRating(index + 0.5)}
-                          onClick={() => setRating(index + 0.5)}
-                          onMouseLeave={() => setRating(rating)}
-                        >
-                          <span
-                            className={`text-2xl ${
-                              index + 0.5 <= rating
-                                ? "text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          >
-                            ★
-                          </span>
-                        </div>
-                        {/* 온전한 별점 */}
-                        <div
-                          className="w-1/2 h-full cursor-pointer"
-                          onMouseMove={() => setRating(starValue)}
-                          onClick={() => setRating(starValue)}
-                          onMouseLeave={() => setRating(rating)}
-                        >
-                          <span
-                            className={`text-2xl ${
-                              starValue <= rating
-                                ? "text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          >
-                            ★
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="text-sm text-gray-600 mt-1">{rating}점</p>
-              </div>
-
-              <div className="space-y-2 mt-2">
-                <textarea
-                  className="w-full h-24 border border-gray-300 rounded-md p-2 text-sm resize-none"
-                  placeholder="후기를 남겨주세요!"
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                ></textarea>
-              </div>
-
-              <Button
-                className={`bg-[#74D4FF] hover:bg-[#5BBCE3] text-white font-bold ${
-                  isSubmitDisabled ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={isSubmitDisabled}
-                onClick={handleReviewSubmit}
-              >
-                리뷰 완료
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* 예약 취소 확인 모달 
-      예를들어 <ReservationDiaglog open={showCancelModal} onOpenChange={setShowCancelModal} />
-      이런식으로 이름 만들어서 분리하고 불러오면 되융! */}
-      
-      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
-        <DialogContent className="bg-white shadow-xl">
-          <DialogHeader className="text-center">
-            <DialogTitle>예약 취소 확인</DialogTitle>
-          </DialogHeader>
-          <div className="text-center py-4">
-            <p className="text-gray-700">예약을 정말 취소하시겠습니까?</p>
-          </div>
-          <DialogFooter className="sm:justify-center">
-            <Button
-              variant="outline"
-              onClick={() => setShowCancelModal(false)}
-              className="w-1/2"
-            >
-              취소
-            </Button>
-            <Button
-              onClick={handleCancelConfirmed}
-              className="w-1/2 bg-[#74D4FF] hover:bg-[#5BBCE3] text-white"
-            >
-              확인
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UsageCancelModal
+        open={showCancelModal}
+        onOpenChange={setShowCancelModal}
+        onConfirm={handleCancelConfirmed}
+      />
     </>
   );
 }
