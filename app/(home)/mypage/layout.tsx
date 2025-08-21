@@ -1,6 +1,10 @@
 import MyPageNavbar from "@/components/customComponents/mypage/MyPageNavbar";
 
-export default function MyPageLayout({ children }: { children: React.ReactNode }) {
+export default function MyPageLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex">
       {/* 왼쪽 고정 네비게이션 바 */}
@@ -8,9 +12,7 @@ export default function MyPageLayout({ children }: { children: React.ReactNode }
         <MyPageNavbar />
       </div>
       {/* 오른쪽 컨텐츠 영역 */}
-      <div className="p-2">
-        {children}
-      </div>
+      <div className="p-2 w-full">{children}</div>
     </div>
   );
 }
