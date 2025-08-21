@@ -11,7 +11,7 @@ export function StoreSearchBar() {
       <input
         type="text"
         value={search}
-        onChange={e => setSearch(e.target.value)}
+        onChange={(e) => setSearch(e.target.value)}
         placeholder="검색어를 입력하세요"
         className="w-full bg-blue-50 rounded px-4 py-2 text-sm outline-none"
       />
