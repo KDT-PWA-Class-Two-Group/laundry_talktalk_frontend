@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MapPin } from "iconoir-react"
 
+//임시 데이터
 const nearbyStores = [
-  { id: 2, name: "세탁소2번", address: "대전 ㅇㅇ동 202", phone: "010-123-4567" },
-  { id: 3, name: "세탁소3번", address: "서울 ㅁㅁ동 33", phone: "010-6665-6666" },
+  { id: 2, name: "세탁소2번", address: "대전 ㅇㅇ동 202", phone: "010-123-4567", image: "/images/wash1.jpg" },
+  { id: 3, name: "세탁소3번", address: "서울 ㅁㅁ동 33", phone: "010-6665-6666", image: "/images/wash2.jpg" },
 ]
 
 export function SearchMap() {
@@ -40,7 +41,7 @@ export function SearchMap() {
 
   return (
     <div className="w-full max-w-sm space-y-4">
-      {/* 🔹 검색 영역 카드 */}
+      {/* 검색 영역 */}
       <div className="border rounded-lg p-4 border-gray-200 bg-white shadow-sm">
         <div className="flex items-center gap-2">
           <Input type="text" placeholder="주소를 입력하세요" />
@@ -62,35 +63,54 @@ export function SearchMap() {
         {location && <p className="text-sm text-gray-600 mt-2">{location}</p>}
       </div>
 
-      {/* 🔹 지도 영역 카드 */}
+      {/* 임시 지도 및 핀 */}
+      {/* 지도 영역 */}
       <div className="border rounded-lg p-4 border-gray-200 bg-white shadow-sm">
         <div className="relative h-64 bg-gray-100">
           {nearbyStores.map((store) => (
-            <button
+            <div
               key={store.id}
-              className="absolute bg-red-500 w-6 h-6 rounded-full text-white text-xs flex items-center justify-center"
+              className="absolute flex flex-col items-center"
               style={{
                 top: `${Math.random() * 80}%`,
                 left: `${Math.random() * 80}%`,
               }}
-              onClick={() => handlePinClick(store)}
             >
-              <MapPin width={14} height={14} />
-            </button>
+              <button
+                className="bg-red-500 w-6 h-6 rounded-full text-white text-xs flex items-center justify-center"
+                onClick={() => handlePinClick(store)}
+              >
+                <MapPin width={14} height={14} />
+              </button>
+              {/* 매장 이름 라벨 */}
+              <span className="mt-1 text-xs bg-white px-1 rounded shadow">
+                {store.name}
+              </span>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* 🔹 모달 */}
+      {/* 모달 */}
       {isModalOpen && selectedStore && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-80 p-4 relative shadow-lg">
             <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+              className="absolute top-2 right-2 w-5 h-5 text-gray-600 hover:text-gray-900"
               onClick={closeModal}
             >
               ✕
             </button>
+
+             {/* 매장 이미지 */}
+            {selectedStore.image && (
+              <img 
+                src={selectedStore.image} 
+                alt={selectedStore.name} 
+                className="w-full h-40 object-cover rounded-md mb-3"
+              />
+            )}
+
             <div className="flex items-center mb-2">
               <span className="text-lg font-bold">{selectedStore.name}</span>
             </div>
