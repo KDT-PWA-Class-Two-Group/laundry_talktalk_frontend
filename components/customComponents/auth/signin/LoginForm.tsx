@@ -1,6 +1,5 @@
 "use client";
 
-import { ENDPOINTS } from "@/lib/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,22 +22,32 @@ export default function LoginForm() {
   // 로그인 처리
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError("");
     setResult(null);
 
     try {
-      const res = await fetch(ENDPOINTS.AUTH.LOGIN, {
+      const res = await fetch("/api/auth/sign-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        // 백엔드가 HttpOnly 쿠키를 내려주는 구조라면 아래 주석 해제
+        credentials: "include",
         body: JSON.stringify({ login_id: loginId, password }),
       });
-      const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "로그인 실패");
+      // JSON 파싱 실패 대비
+      const data = await res.json().catch(() => ({} as any));
+
+      if (!res.ok) {
+        // 프록시가 넘겨준 message를 우선 사용
+        const msg = data?.message || data?.error || "로그인 실패";
+        throw new Error(msg);
+      }
 
       setResult(data);
-      // 로그인 성공 시 라우팅 예시 (필요 시 팀장과 협의)
+      // 로그인 성공 시 라우팅
       // router.push("/mypage");
     } catch (err: any) {
       setError(err.message);
@@ -78,7 +87,7 @@ export default function LoginForm() {
       </div>
 
       {/* 보조 링크 */}
-      <div className="flex justify-center gap-8 text-sm text-muted-foreground">
+      <div className="flex justify-end gap-4 text-sm mt-2">
         <Link href="/auth/find-id" className="hover:underline">
           ID 찾기
         </Link>
@@ -102,7 +111,7 @@ export default function LoginForm() {
       {/* 에러/결과 */}
       {error && <p className="text-center text-sm text-red-600">{error}</p>}
       {result && (
-        <pre className="bg-muted p-3 rounde`d text-xs overflow-auto">
+        <pre className="bg-muted p-3 rounded text-xs overflow-auto">
           {JSON.stringify(result, null, 2)}
         </pre>
       )}
