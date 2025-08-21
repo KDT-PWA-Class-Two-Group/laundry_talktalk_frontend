@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Plus, Settings2 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 // import { OptionsPricingDialog } from "@/components/admin/OptionsPricingDialog";
 
 /** ===== 라우트 상수 (프로젝트 경로에 맞게 바꿔도 됨) ===== */
@@ -64,7 +64,7 @@ const TEMPLATES: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
 };
 
 /** ===== 메인: 기기관리 페이지 ===== */
-export default function DeviceManagementPage() {
+export default function DeviceManagementPage({ storeName }: { storeName: string }) {
   const router = useRouter(); // ✅ 라우터
   const pathname = usePathname(); // ✅ 현재 경로
   const isDevices = pathname === DEVICES_PATH;
