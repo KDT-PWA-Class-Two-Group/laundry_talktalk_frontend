@@ -17,6 +17,16 @@ import { Input } from "@/components/ui/input";
 // 인터페이스는 @/types/mypage.ts에서 불러옵니다.
 import { FavoriteStore, SelectedStoreType } from "@/types/mypage";
 
+// ================================================================================
+// @types/kakaomaps 패키지 설치 후에는 이 전역 타입 선언이 불필요합니다.
+// TypeScript가 node_modules/@types/kakaomaps 경로에서 타입을 자동으로 로드합니다.
+// ================================================================================
+// declare global {
+//   interface Window {
+//     kakao: any;
+//   }
+// }
+
 //================================================================================
 // 헬퍼 함수
 //================================================================================
@@ -216,12 +226,12 @@ export const LocationPermissionModal: React.FC<
 };
 
 //================================================================================
-// 즐겨찾기 추가 지도 모달 (Google 지도 연동)
+// 즐겨찾기 추가 지도 모달 (카카오 지도 연동)
 //================================================================================
 interface AddFavoritesMapModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mapCenter: { lat: number; lng: number };
+  mapCenter: { lat: number; lng: number }; // 위도, 경도
   selectedStore: SelectedStoreType | null;
   favoriteStores: FavoriteStore[]; // 즐겨찾기 목록 (마커 색상 등에 활용)
   availableStores: FavoriteStore[]; // 지도에 표시할 모든 매장 목록
@@ -229,22 +239,27 @@ interface AddFavoritesMapModalProps {
   onMapPinClick: (storeId: number) => void; // 지도 마커 클릭 시 호출
 }
 
-// Google Maps API 스크립트를 동적으로 로드하는 함수
-const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
+// Kakao Maps API 스크립트를 동적으로 로드하는 함수
+const loadKakaoMapsScript = (apiKey: string): Promise<void> => {
   // 이미 로드되었으면 바로 resolve
-  if (window.google && window.google.maps) {
+  if (window.kakao && window.kakao.maps) {
     return Promise.resolve();
   }
 
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    // Places 라이브러리 추가 (장소 검색 기능에 필요할 수 있음)
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    // Kakao Maps SDK 스크립트 로드. 'services' 라이브러리 포함 (장소 검색 등에 사용). 'autoload=false' 중요.
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services&autoload=false`;
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve();
+    script.onload = () => {
+      // 스크립트 로드 후 kakao.maps.load()를 호출하여 라이브러리를 초기화
+      window.kakao.maps.load(() => {
+        resolve();
+      });
+    };
     script.onerror = () =>
-      reject(new Error("Google Maps 스크립트를 로드할 수 없습니다."));
+      reject(new Error("Kakao Maps 스크립트를 로드할 수 없습니다."));
     document.head.appendChild(script);
   });
 };
@@ -255,29 +270,28 @@ export const AddFavoritesMapModal: React.FC<AddFavoritesMapModalProps> = ({
   mapCenter,
   selectedStore,
   favoriteStores,
-  availableStores, // 모든 매장 목록 prop으로 받기
+  availableStores,
   onToggleFavorite,
   onMapPinClick,
 }) => {
   const mapRef = useRef<HTMLDivElement>(null); // 지도를 렌더링할 DOM 요소
-  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
-  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const [mapInstance, setMapInstance] = useState<kakao.maps.Map | null>(null);
+  const [markers, setMarkers] = useState<kakao.maps.Marker[]>([]);
+  const [kakaoMapsLoaded, setKakaoMapsLoaded] = useState(false);
 
-  // Google Maps API 키 (환경 변수에서 가져옴)
-  // NEXT_PUBLIC_ 접두사가 붙어야 브라우저에서 접근 가능합니다.
-  const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  // Kakao Maps API 키 (환경 변수에서 가져옴)
+  const KAKAO_MAPS_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAPS_API_KEY;
 
-  // 1. 모달이 열릴 때 Google Maps 스크립트 로드
+  // 1. 모달이 열릴 때 Kakao Maps 스크립트 로드
   useEffect(() => {
-    if (open && !googleMapsLoaded && GOOGLE_MAPS_API_KEY) {
-      loadGoogleMapsScript(GOOGLE_MAPS_API_KEY)
+    if (open && !kakaoMapsLoaded && KAKAO_MAPS_API_KEY) {
+      loadKakaoMapsScript(KAKAO_MAPS_API_KEY)
         .then(() => {
-          setGoogleMapsLoaded(true);
-          console.log("Google Maps API 스크립트 로드 완료");
+          setKakaoMapsLoaded(true);
+          console.log("Kakao Maps API 스크립트 로드 완료");
         })
         .catch((error) => {
-          console.error("Google Maps API 로드 실패:", error);
+          console.error("Kakao Maps API 로드 실패:", error);
           alert("지도를 불러오는 데 실패했습니다. 잠시 후 다시 시도해 주세요.");
         });
     }
@@ -285,68 +299,83 @@ export const AddFavoritesMapModal: React.FC<AddFavoritesMapModalProps> = ({
     if (!open && mapInstance) {
       markers.forEach((marker) => marker.setMap(null)); // 모든 마커 제거
       setMarkers([]);
-      // mapInstance.setDiv(null); // 이 줄을 제거하여 오류를 해결합니다.
+      // Kakao Map 객체는 setDiv(null)을 직접 지원하지 않습니다.
+      // 대신 mapInstance를 null로 설정하여 참조를 끊고 가비지 컬렉션을 기다립니다.
       setMapInstance(null);
-      setGoogleMapsLoaded(false); // 스크립트 다시 로드할 수 있도록 상태 초기화
+      setKakaoMapsLoaded(false); // 스크립트 다시 로드할 수 있도록 상태 초기화
     }
-  }, [open, googleMapsLoaded, GOOGLE_MAPS_API_KEY, mapInstance, markers]);
+  }, [open, kakaoMapsLoaded, KAKAO_MAPS_API_KEY, mapInstance, markers]);
 
   // 2. 스크립트 로드 후 지도 인스턴스 초기화
   useEffect(() => {
-    if (googleMapsLoaded && mapRef.current && !mapInstance) {
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: mapCenter,
-        zoom: 15, // 초기 줌 레벨
-        mapId: "YOUR_MAP_ID", // 구글 클라우드 콘솔에서 설정한 맵 ID (선택 사항)
-        disableDefaultUI: true, // 기본 UI 숨기기
-        zoomControl: true, // 줌 컨트롤만 표시
-      });
+    if (kakaoMapsLoaded && mapRef.current && !mapInstance) {
+      const options = {
+        center: new kakao.maps.LatLng(mapCenter.lat, mapCenter.lng), // 지도 중심 좌표
+        level: 3, // 지도 확대 레벨 (작을수록 확대)
+      };
+      const map = new kakao.maps.Map(mapRef.current, options);
       setMapInstance(map);
-      console.log("Google Maps 지도 인스턴스 초기화 완료");
+      console.log("Kakao Maps 지도 인스턴스 초기화 완료");
     }
-  }, [googleMapsLoaded, mapRef, mapCenter, mapInstance]);
+  }, [kakaoMapsLoaded, mapRef, mapCenter, mapInstance]);
 
-  // 3. 맵 센터 변경 시 지도 이동
+  // 3. 맵 센터 변경 시 지도 이동 (Kakao LatLng 객체 사용)
   useEffect(() => {
     if (mapInstance) {
-      mapInstance.setCenter(mapCenter);
+      mapInstance.setCenter(
+        new kakao.maps.LatLng(mapCenter.lat, mapCenter.lng)
+      );
     }
   }, [mapInstance, mapCenter]);
 
   // 4. availableStores 또는 mapInstance 변경 시 마커 생성/업데이트
   useEffect(() => {
     if (mapInstance && availableStores.length > 0) {
-      // 기존 마커 제거
-      markers.forEach((marker) => marker.setMap(null));
-      const newMarkers: google.maps.Marker[] = [];
+      const newMarkers: kakao.maps.Marker[] = [];
+
+      // 마커 이미지 정의 (즐겨찾기 여부에 따라 다른 색상 마커)
+      const redMarkerImage = new kakao.maps.MarkerImage(
+        "https://t1.daumcdn.net/mapapidoc/marker_red.png",
+        new kakao.maps.Size(24, 35)
+      );
+      const blueMarkerImage = new kakao.maps.MarkerImage(
+        "https://t1.daumcdn.net/mapapidoc/marker_blue.png",
+        new kakao.maps.Size(24, 35)
+      );
 
       availableStores.forEach((store) => {
-        // 매장 데이터에 위도와 경도가 있어야 합니다.
         if (store.latitude && store.longitude) {
           const isFav = favoriteStores.some(
             (favStore) => favStore.id === store.id
           );
+          const markerPosition = new kakao.maps.LatLng(
+            store.latitude,
+            store.longitude
+          );
 
-          const marker = new window.google.maps.Marker({
-            position: { lat: store.latitude, lng: store.longitude },
+          const marker = new kakao.maps.Marker({
             map: mapInstance,
+            position: markerPosition,
             title: store.name,
-            icon: isFav
-              ? "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-              : "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // 즐겨찾기 여부에 따라 아이콘 변경
+            image: isFav ? redMarkerImage : blueMarkerImage, // 즐겨찾기 여부에 따라 아이콘 변경
           });
 
           // 마커 클릭 시 상위 컴포넌트의 onMapPinClick 호출
-          marker.addListener("click", () => {
+          kakao.maps.event.addListener(marker, "click", () => {
             onMapPinClick(store.id);
           });
           newMarkers.push(marker);
         }
       });
-      setMarkers(newMarkers);
-      console.log("지도 마커 업데이트 완료");
+      setMarkers(newMarkers); // 이 시점에서 markers 상태가 업데이트됩니다.
+
+      // Cleanup 함수: 이 effect가 다시 실행되거나 컴포넌트가 언마운트될 때
+      // 이전에 생성된 마커들을 지도에서 제거합니다.
+      return () => {
+        newMarkers.forEach((marker) => marker.setMap(null));
+      };
     }
-  }, [mapInstance, availableStores, favoriteStores, onMapPinClick]);
+  }, [mapInstance, availableStores, favoriteStores, onMapPinClick]); // 'markers'는 이제 의존성 배열에 포함되지 않습니다.
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -370,19 +399,16 @@ export const AddFavoritesMapModal: React.FC<AddFavoritesMapModalProps> = ({
           />
           <Button
             // 이 버튼은 현재 위치로 지도를 이동시키는 역할을 합니다.
-            // Geolocation API를 사용하여 현재 위치를 가져오고 mapCenter 상태를 업데이트합니다.
             onClick={() => {
               if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                   (position) => {
-                    // 현재 위치를 기준으로 mapCenter를 업데이트하여 지도 이동
-                    // 상위 컴포넌트의 mapCenter 상태를 직접 변경할 수는 없으므로,
-                    // 이곳에서는 지도 인스턴스의 center를 직접 설정합니다.
-                    mapInstance?.setCenter({
-                      lat: position.coords.latitude,
-                      lng: position.coords.longitude,
-                    });
-                    mapInstance?.setZoom(15); // 현재 위치로 이동 시 줌 레벨 조정
+                    const currentPos = new kakao.maps.LatLng(
+                      position.coords.latitude,
+                      position.coords.longitude
+                    );
+                    mapInstance?.setCenter(currentPos); // 현재 위치로 지도 중심 이동
+                    mapInstance?.setLevel(3); // 현재 위치로 이동 시 줌 레벨 조정
                   },
                   (error) => {
                     console.error("현재 위치를 가져오지 못했습니다.", error);
@@ -405,15 +431,12 @@ export const AddFavoritesMapModal: React.FC<AddFavoritesMapModalProps> = ({
         {/* 지도가 렌더링될 영역 */}
         <div
           ref={mapRef}
-          className="w-full flex-grow bg-gray-200 flex items-center justify-center text-gray-500 rounded-lg overflow-hidden"
-          style={{ height: "300px" }} // 지도 div의 높이 지정
+          className="w-full flex-grow bg-gray-200 flex items-center justify-center text-gray-500 rounded-lg overflow-hidden h-[300px]" // 'h-[300px]' 클래스 추가
         >
-          {/* Google Maps API 로드 상태에 따라 메시지 표시 */}
-          {!googleMapsLoaded ? (
-            <p className="text-center">Google 지도를 불러오는 중...</p>
-          ) : // 지도가 성공적으로 로드되면 이 div 안에 지도가 표시됩니다.
-          // 지도 인스턴스가 생성되기 전까지는 "지도를 초기화 중입니다..." 메시지 표시
-          !mapInstance ? (
+          {/* Kakao Maps API 로드 상태에 따라 메시지 표시 */}
+          {!kakaoMapsLoaded ? (
+            <p className="text-center">카카오 지도를 불러오는 중...</p>
+          ) : !mapInstance ? (
             <p className="text-center">지도를 초기화 중입니다...</p>
           ) : null}
         </div>
