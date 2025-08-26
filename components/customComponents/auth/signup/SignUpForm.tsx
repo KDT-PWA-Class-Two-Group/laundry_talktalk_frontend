@@ -35,7 +35,7 @@ export default function SignUpForm() {
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
         body: JSON.stringify({
-          login_id: form.id,
+          userId: form.id,
           password: form.password,
           passwordConfirm: form.passwordConfirm,
           email: form.email,
