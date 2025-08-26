@@ -29,7 +29,7 @@ export default function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ login_id: loginId, password }),
+        body: JSON.stringify({ userId: loginId, password }),
       });
 
       const data = await res.json().catch(() => ({} as any));
@@ -38,8 +38,12 @@ export default function LoginForm() {
         throw new Error(msg);
       }
 
-      setResult(data);
-      // router.push("/mypage");
+      // ✅ 토큰 로컬 저장소에 저장
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+
+      // ✅ 마이페이지로 이동
+      router.push("/");
     } catch (err: any) {
       setError(err.message);
     } finally {
