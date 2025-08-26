@@ -68,27 +68,33 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
   const [store, setStore] = useState<string>(storeName || "둔산점");
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
-  // 더미데이터 (여기서는 리터럴만!)
-  const [items, setItems] = useState<NoticeItem[]>([
-    {
-      id: "n1",
-      title: "할인~",
-      type: "홍보",
-      createdAt: "2025.08.14",
-      startAt: "2025-08-14",
-      endAt: "2025-08-14",
-      content: "예시 홍보 내용",
-    },
-    {
-      id: "n2",
-      title: "일 안함~",
-      type: "공지", // ← form.type 쓰지 않음
-      createdAt: "2025.08.14",
-      startAt: "2025-08-14",
-      endAt: "2025-08-14",
-      content: "예시 공지 내용",
-    },
-  ]);
+  // 데이터 상태: API 연동
+  const [items, setItems] = useState<NoticeItem[]>([]);
+
+  // 매장별 공지/홍보글 목록 조회
+  useEffect(() => {
+    async function fetchNotices() {
+      try {
+        const res = await fetch(`/app/api/posts/store/${store}`);
+        const data = await res.json();
+        setItems(
+          data.map((item: any) => ({
+            id: item.store_notice_event_id?.toString() ?? '',
+            title: item.store_notice_event_title,
+            type: item.store_notice_event_type === false ? '공지' : '홍보',
+            createdAt: item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, '.') ?? '',
+            startAt: item.store_notice_event_start_time ?? '',
+            endAt: item.store_notice_event_end_time ?? '',
+            content: item.store_notice_event_contents ?? '',
+            fileName: item.store_notice_event_image_url ?? '',
+          }))
+        );
+      } catch (e) {
+        setItems([]);
+      }
+    }
+    fetchNotices();
+  }, [store]);
 
   // 선택/모달
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -186,49 +192,107 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
     setForm((prev) => ({ ...prev, fileName: f.name }));
   };
 
-  const handleSubmit = () => {
+  // 등록/수정 시 API 호출, UI 로직은 그대로 유지
+  const handleSubmit = async () => {
     if (!form.title.trim()) return alert("제목을 입력하세요.");
     if (mode === "create") {
-      const newItem: NoticeItem = {
-        id: `n${Date.now()}`,
-        title: form.title,
-        type: form.type, // 여기서만 form.type 사용
-        createdAt: formatToDotDate(form.startAt),
-        startAt: form.startAt,
-        endAt: form.endAt,
-        content: form.content,
-        fileName: form.fileName,
-      };
-      setItems((prev) => [newItem, ...prev]);
-      setSelectedId(newItem.id);
-      setMode("view");
-      setOpen(false);
+      // 등록
+      try {
+        const res = await fetch("/app/api/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            store_id: store,
+            store_notice_event_type: form.type === "공지" ? false : true,
+            store_notice_event_title: form.title,
+            store_notice_event_contents: form.content,
+            store_notice_event_image_url: form.fileName,
+            store_notice_event_start_time: form.startAt,
+            store_notice_event_end_time: form.endAt,
+          }),
+        });
+        if (res.ok) {
+          setOpen(false);
+          setMode("view");
+          // 목록 새로고침
+          const refreshed = await fetch(`/app/api/posts/store/${store}`);
+          const data = await refreshed.json();
+          setItems(
+            data.map((item: any) => ({
+              id: item.store_notice_event_id?.toString() ?? '',
+              title: item.store_notice_event_title,
+              type: item.store_notice_event_type === false ? '공지' : '홍보',
+              createdAt: item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, '.') ?? '',
+              startAt: item.store_notice_event_start_time ?? '',
+              endAt: item.store_notice_event_end_time ?? '',
+              content: item.store_notice_event_contents ?? '',
+              fileName: item.store_notice_event_image_url ?? '',
+            }))
+          );
+        }
+      } catch (e) {}
     } else if (mode === "edit" && selected) {
-      setItems((prev) =>
-        prev.map((it) =>
-          it.id === selected.id
-            ? {
-                ...it,
-                title: form.title,
-                startAt: form.startAt,
-                endAt: form.endAt,
-                createdAt: formatToDotDate(form.startAt),
-                type: form.type, // 편집 시 태그도 반영
-                content: form.content,
-                fileName: form.fileName,
-              }
-            : it
-        )
-      );
-      setMode("view");
+      // 수정
+      try {
+        const res = await fetch(`/app/api/posts/${selected.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            store_notice_event_title: form.title,
+            store_notice_event_contents: form.content,
+            store_notice_event_image_url: form.fileName,
+            store_notice_event_start_time: form.startAt,
+            store_notice_event_end_time: form.endAt,
+            store_notice_event_type: form.type === "공지" ? false : true,
+          }),
+        });
+        if (res.ok) {
+          setMode("view");
+          // 목록 새로고침
+          const refreshed = await fetch(`/app/api/posts/store/${store}`);
+          const data = await refreshed.json();
+          setItems(
+            data.map((item: any) => ({
+              id: item.store_notice_event_id?.toString() ?? '',
+              title: item.store_notice_event_title,
+              type: item.store_notice_event_type === false ? '공지' : '홍보',
+              createdAt: item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, '.') ?? '',
+              startAt: item.store_notice_event_start_time ?? '',
+              endAt: item.store_notice_event_end_time ?? '',
+              content: item.store_notice_event_contents ?? '',
+              fileName: item.store_notice_event_image_url ?? '',
+            }))
+          );
+        }
+      } catch (e) {}
     }
   };
 
-  const handleDelete = () => {
+  // 삭제 시 API 호출, UI 로직은 그대로 유지
+  const handleDelete = async () => {
     if (!selected) return;
     if (!confirm("삭제하시겠습니까?")) return;
-    setItems((prev) => prev.filter((it) => it.id !== selected.id));
-    closeModal();
+    try {
+      const res = await fetch(`/app/api/posts/${selected.id}`, { method: "DELETE" });
+      if (res.ok) {
+        closeModal();
+        // 목록 새로고침
+        const refreshed = await fetch(`/app/api/posts/store/${store}`);
+        const data = await refreshed.json();
+        setItems(
+          data.map((item: any) => ({
+            id: item.store_notice_event_id?.toString() ?? '',
+            title: item.store_notice_event_title,
+            type: item.store_notice_event_type === false ? '공지' : '홍보',
+            createdAt: item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, '.') ?? '',
+            startAt: item.store_notice_event_start_time ?? '',
+            endAt: item.store_notice_event_end_time ?? '',
+            content: item.store_notice_event_contents ?? '',
+            fileName: item.store_notice_event_image_url ?? '',
+          }))
+        );
+      }
+    } catch (e) {}
   };
 
   return (
