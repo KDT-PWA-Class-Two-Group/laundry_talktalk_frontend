@@ -19,27 +19,29 @@ export const ENDPOINTS = {
     FAVORITES_STORE_DELETE: (storeId: string) => `${API_BASE_URL}/api/users/me/favorites/stores/${storeId}`,
   },
   STORES: {
+    LIST: `${API_BASE_URL}/api/stores`,
     SEARCH_KEYWORD: `${API_BASE_URL}/api/stores/search/keyword`,
     SEARCH_NEARBY: `${API_BASE_URL}/api/stores/search/nearby`,
     STORE_DETAIL: (storeId: string) => `${API_BASE_URL}/api/stores/${storeId}`,
     MACHINE_OPTIONS: (storeId: string, machineId: string) => `${API_BASE_URL}/api/stores/${storeId}/machines/${machineId}/options`,
   },
+  MACHINE: {
+    OPTIONS: `${API_BASE_URL}/api/machine/options`,
+    ESTIMATE: `${API_BASE_URL}/api/machine/estimate`,
+  },
+  POSTS: {
+    POSTS_STORE: (storeId: string) => `${API_BASE_URL}/api/posts/store/${storeId}`,
+    POSTS_CREATE: `${API_BASE_URL}/api/posts`,
+    POST_PUT_DELETE: (postId: string) => `${API_BASE_URL}/api/posts/${postId}`,
+  },
   RESERVATION: {
     RESERVATIONS: `${API_BASE_URL}/api/reservations`,
-    RESERVATION_DETAIL: (reservationId: string) => `${API_BASE_URL}/api/reservations/${reservationId}`,
+    RESERVATION_CANCEL: (reservationId: string) => `${API_BASE_URL}/api/reservations/${reservationId}`,
   },
   REVIEWS: {
-    REVIEWS: `${API_BASE_URL}/api/stores/reviews`,
-    REVIEWS_STORE: (storeId: string) => `${API_BASE_URL}/api/stores/reviews/${storeId}`,
-    REVIEW_COMMENT: (reviewId: string) => `${API_BASE_URL}/api/stores/reviews/${reviewId}/comment`,
-    REVIEW_DELETE: (reviewId: string) => `${API_BASE_URL}/api/stores/reviews/${reviewId}`,
-  },
-  NOTICES: {
-    POSTS_STORE: (storeId: string) => `${API_BASE_URL}/api/stores/posts/${storeId}`,
-    POSTS: `${API_BASE_URL}/api/stores/posts`,
-    POST_DETAIL: (postId: string) => `${API_BASE_URL}/api/stores/posts/${postId}`,
-  },
-  SERVICE: {
-    ESTIMATE: `${API_BASE_URL}/api/laundry/estimate`,
+    REVIEWS: `${API_BASE_URL}/api/reviews`,
+    REVIEWS_LIST: (storeId: string) => `${API_BASE_URL}/api/reviews/list/${storeId}`,
+    REVIEWS_COMMENT: (reviewId: string) => `${API_BASE_URL}/api/reviews/${reviewId}/comment`,
+    REVIEWS_DELETE: (reviewId: string) => `${API_BASE_URL}/api/reviews/${reviewId}`,
   },
 };
