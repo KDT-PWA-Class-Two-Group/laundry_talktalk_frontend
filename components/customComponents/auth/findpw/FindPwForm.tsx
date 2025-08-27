@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 
 export default function FindPwForm() {
   const [email, setEmail] = useState("");
@@ -27,7 +27,7 @@ export default function FindPwForm() {
         body: JSON.stringify({ email }),
       });
 
-      const data = await res.json().catch(() => ({} as any));
+      const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "비밀번호 찾기 실패");
 
       setSent(true);

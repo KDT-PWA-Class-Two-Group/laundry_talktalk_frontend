@@ -68,33 +68,29 @@ export default function LoginForm() {
         return;
       }
 
-      // 로그인 성공 - 다양한 응답 구조 처리
-      const rawUser = data.user || data;
-      const accessToken = data.accessToken || data.access_token;
-      const refreshToken = data.refreshToken || data.refresh_token;
+      // 로그인 성공 - 백엔드 응답 구조 처리
+      const userId = data.userId;
+      const email = data.email;
 
-      console.log("파싱된 원시 데이터:", { rawUser, accessToken, refreshToken }); // 디버깅용
+      console.log("백엔드 응답 데이터:", { userId, email, message: data.message }); // 디버깅용
 
-      if (rawUser && accessToken && refreshToken) {
-        // User 인터페이스에 맞게 필터링 (user_id, email만)
+      if (userId && email) {
+        // User 인터페이스에 맞게 사용자 정보 생성
         const user = {
-          user_id: rawUser.user_id || rawUser.userId,
-          email: rawUser.email
+          user_id: userId,
+          email: email
         };
 
-        console.log("필터링된 User:", user); // 디버깅용
+        console.log("사용자 정보:", user); // 디버깅용
 
-        // authStore에 인증 상태 저장 (localStorage에 자동 저장됨)
-        setAuthenticated(user, accessToken, refreshToken);
-
-        // 쿠키에도 accessToken 저장 (서버 요청용)
-        document.cookie = `accessToken=${accessToken}; path=/; secure; samesite=strict`;
+        // authStore에 사용자 정보만 저장 (토큰은 HttpOnly 쿠키에서 관리)
+        setAuthenticated(user);
 
         console.log("로그인 성공! 홈으로 이동합니다."); // 디버깅용
         // 홈페이지로 이동
         router.push("/");
       } else {
-        console.error("토큰 정보 누락:", { rawUser, accessToken, refreshToken }); // 디버깅용
+        console.error("사용자 정보 누락:", { userId, email }); // 디버깅용
         setError("로그인 응답 데이터가 올바르지 않습니다.");
       }
 
