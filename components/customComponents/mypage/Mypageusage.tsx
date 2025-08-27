@@ -1,14 +1,14 @@
 // src/app/usage-history/page.tsx
 "use client";
-import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from "react";
 
 // 올바른 위치에서 인터페이스와 모의 데이터를 불러옵니다.
 import { UsageItem, initialMockData } from "@/types/mypage";
 
 // 분리된 모달 컴포넌트들을 불러옵니다.
-import { UsageReviewModal } from "./review_modal";
 import { UsageCancelModal } from "./cancle_modal";
+import { UsageReviewModal } from "./review_modal";
 
 const getStatusText = (status: UsageItem["status"]) => {
   switch (status) {
@@ -190,7 +190,7 @@ export default function UsageHistoryPage() {
     setIsProcessing(true);
     try {
       const response = await fetch(
-        `/api/mypage/usage-history/review/${selectedItemForAction.id}`,
+        `/api/users/usage-history/review/${selectedItemForAction.id}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
