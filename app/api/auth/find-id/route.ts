@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // 🔹 백엔드 API 호출 (아이디 찾기)
-    const backendRes = await fetch(`${process.env.BACKEND_URL}/api/auth/find-id`, {
+    const backendRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/find-id`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

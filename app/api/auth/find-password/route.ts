@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const backendRes = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/find-password`, // 🔹 백엔드 API 호출
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/find-password`, // 🔹 백엔드 API 호출
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
