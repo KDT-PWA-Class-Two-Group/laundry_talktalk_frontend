@@ -125,16 +125,21 @@ export default function UsageHistoryPage() {
         const response = await fetch("/api/mypage/usage-history");
         if (!response.ok) throw new Error("이용 내역을 불러오는 데 실패했습니다.");
         const data = await response.json();
+        // console.log("Fetched usage history data:", data);  // 디버그용 로그 출력
         // 여기서 매핑
         const mapped = data.map((item: any) => ({
           id: item.id,
-          storeName: item.store?.name || "알 수 없음",
-          status: item.status || "completed", // 실제 status 필드명에 맞게
-          reservationDate: item.reservation_create_time, // 실제 필드명에 맞게
+          storeName: item.store?.store_name || "알 수 없음",
+          status:
+            item.status ? item.status
+            : item.reservation_cancel
+              ? "cancelled"
+              : "completed",
+          reservationDate: item.reservation_create_time,
           duration: item.duration || "",
           code: item.code || "",
           price: item.price || "",
-          date: item.reservation_create_time, // 카드 상단 날짜
+          date: item.reservation_create_time,
           // ...필요한 필드 추가
         }));
         setUsageData(mapped);
