@@ -1,4 +1,3 @@
-import EventDropdown from "@/components/customComponents/store-info/EventDropdown";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -110,7 +109,7 @@ export default function StorePage({ params }: { params: { storeid: string } }) {
         {/* 이벤트 탭 */}
         <TabsContent value="event">
           {/* 진행중/종료된 이벤트 필터 드롭다운 */}
-          <EventDropdown events={events} />
+          {/* <EventDropdown events={events} /> */}
           {events.map((e) => (
             <div
               key={e.id}
