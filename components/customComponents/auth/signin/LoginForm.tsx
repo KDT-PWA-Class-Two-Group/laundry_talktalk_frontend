@@ -3,23 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-// shadcn/ui 컴포넌트
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginForm() {
   const router = useRouter();
-
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
 
-  // 로그인 처리
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -31,24 +28,22 @@ export default function LoginForm() {
       const res = await fetch("/api/auth/sign-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-        // 백엔드가 HttpOnly 쿠키를 내려주는 구조라면 아래 주석 해제
         credentials: "include",
-        body: JSON.stringify({ login_id: loginId, password }),
+        body: JSON.stringify({ userId: loginId, password }),
       });
 
-      // JSON 파싱 실패 대비
       const data = await res.json().catch(() => ({} as any));
-
       if (!res.ok) {
-        // 프록시가 넘겨준 message를 우선 사용
         const msg = data?.message || data?.error || "로그인 실패";
         throw new Error(msg);
       }
 
-      setResult(data);
-      // 로그인 성공 시 라우팅
-      // router.push("/mypage");
+      // ✅ 토큰 로컬 저장소에 저장
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+
+      // ✅ 마이페이지로 이동
+      router.push("/");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -57,64 +52,77 @@ export default function LoginForm() {
   };
 
   return (
-    <form
-      onSubmit={handleLogin}
-      className="flex flex-col gap-4 w-full max-w-md mx-auto"
-    >
-      {/* ID */}
-      <div className="grid gap-2">
-        <Label htmlFor="loginId">ID</Label>
-        <Input
-          id="loginId"
-          placeholder="아이디"
-          value={loginId}
-          onChange={(e) => setLoginId(e.target.value)}
-          required
-        />
-      </div>
+    <Card className="w-full max-w-md mx-4 shadow-lg rounded-2xl border border-sky-100 bg-white">
+      <CardContent>
+        <form onSubmit={handleLogin} className="flex flex-col gap-4 py-6">
+          {/* ID */}
+          <div className="grid gap-2">
+            <Label htmlFor="loginId">아이디</Label>
+            <Input
+              id="loginId"
+              placeholder="아이디 입력"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              required
+              className="focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
 
-      {/* PW */}
-      <div className="grid gap-2">
-        <Label htmlFor="password">PW</Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="비밀번호"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
+          {/* PW */}
+          <div className="grid gap-2">
+            <Label htmlFor="password">비밀번호</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="비밀번호 입력"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
 
-      {/* 보조 링크 */}
-      <div className="flex justify-end gap-4 text-sm mt-2">
-        <Link href="/auth/find-id" className="hover:underline">
-          ID 찾기
-        </Link>
-        <Link href="/auth/find-password" className="hover:underline">
-          PW 찾기
-        </Link>
-      </div>
+          {/* 보조 링크 */}
+          <div className="flex justify-between text-sm text-sky-600">
+            <Link href="/auth/find-id" className="hover:underline">
+              아이디 찾기
+            </Link>
+            <Link href="/auth/find-password" className="hover:underline">
+              비밀번호 찾기
+            </Link>
+          </div>
 
-      {/* 로그인 버튼 */}
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "로그인 중..." : "로그인"}
-      </Button>
+          {/* 로그인 버튼 */}
+          <Button
+            type="submit"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white rounded-lg"
+            disabled={loading}
+          >
+            {loading ? "로그인 중..." : "로그인"}
+          </Button>
 
-      <Separator />
+          <Separator />
 
-      {/* 회원가입 버튼 */}
-      <Button variant="outline" asChild className="w-full">
-        <Link href="/auth/sign-up">회원가입</Link>
-      </Button>
+          {/* 회원가입 버튼 */}
+          <Button
+            variant="outline"
+            asChild
+            className="w-full border-sky-300 text-sky-600 hover:bg-sky-50"
+          >
+            <Link href="/auth/sign-up">회원가입</Link>
+          </Button>
 
-      {/* 에러/결과 */}
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
-      {result && (
-        <pre className="bg-muted p-3 rounded text-xs overflow-auto">
-          {JSON.stringify(result, null, 2)}
-        </pre>
-      )}
-    </form>
+          {/* 에러/결과 */}
+          {error && (
+            <p className="text-center text-sm text-red-600 mt-2">{error}</p>
+          )}
+          {result && (
+            <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto mt-2">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+          )}
+        </form>
+      </CardContent>
+    </Card>
   );
 }

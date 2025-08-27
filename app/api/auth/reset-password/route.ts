@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const backendRes = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/reset-password`, // ✅ 백엔드 비번 재설정 API
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-password`, // ✅ 백엔드 비번 재설정 API
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

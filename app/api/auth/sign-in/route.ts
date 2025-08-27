@@ -4,12 +4,12 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   try {
-    const backendRes = await fetch(`${process.env.BACKEND_URL}/api/auth/sign-in`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      cache: "no-store", // 로그인은 캐싱 금지
-    });
+    const backendRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
 
     // 🔹[추가] 백엔드 응답 본문(JSON 파싱 실패 대비)
     const data = await backendRes

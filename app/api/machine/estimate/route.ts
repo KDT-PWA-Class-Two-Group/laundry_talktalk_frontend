@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     // ✅ 나중에 백엔드 붙으면 여기서 호출
     /*
-    const backendRes = await fetch(`${process.env.BACKEND_URL}/api/price-estimator`, {
+    const backendRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/price-estimator`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
