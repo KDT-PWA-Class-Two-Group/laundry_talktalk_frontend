@@ -221,12 +221,12 @@ export default function UsageHistoryPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col">
         <div className="pt-8 pb-4 pl-8 w-full">
           <h1 className="text-2xl font-bold">이용 내역</h1>
         </div>
 
-        <div className="flex flex-grow justify-center items-center">
+        <div className="flex justify-center">
           <div className="w-full max-w-xl flex flex-col items-start gap-8 px-4 sm:px-6">
             <h2 className="text-xl font-semibold mt-8">예약 내역</h2>
             <div className="w-full flex flex-col gap-6">
