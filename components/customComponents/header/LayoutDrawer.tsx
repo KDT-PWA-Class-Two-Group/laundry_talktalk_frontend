@@ -22,11 +22,11 @@ export default function LayoutDrawer({ open, onClose }: { open: boolean; onClose
       />
       {/* 드로어 */}
       <nav
-        className={`fixed top-0 left-0 bottom-0 h-full w-full md:w- bg-white shadow-lg z-50 transform transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed top-0 left-0 bottom-0 h-full w-full md:w-80 bg-white shadow-lg z-50 transform transition-transform duration-300 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex flex-col h-full p-6 gap-4">
           <button className="self-end mb-4 text-gray-500" onClick={onClose}>
-            닫기;
+            닫기
           </button>
           {menuItems.map((item) => (
             <button

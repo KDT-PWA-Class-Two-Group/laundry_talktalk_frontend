@@ -1,28 +1,47 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
+import { useAuthStore } from "@/stores/authstore";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function LoginForm() {
   const router = useRouter();
+  const { setAuthenticated } = useAuthStore();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
     setLoading(true);
     setError("");
-    setResult(null);
+    setFieldErrors({});
+
+    // 클라이언트 사이드 유효성 검사
+    const errors: {[key: string]: string} = {};
+
+    if (!loginId.trim()) {
+      errors.loginId = "아이디를 입력해주세요.";
+    }
+
+    if (!password) {
+      errors.password = "비밀번호를 입력해주세요.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/auth/sign-in", {
@@ -32,20 +51,56 @@ export default function LoginForm() {
         body: JSON.stringify({ userId: loginId, password }),
       });
 
-      const data = await res.json().catch(() => ({} as any));
+      const data = await res.json();
+      console.log("로그인 응답:", data); // 디버깅용
+      
       if (!res.ok) {
-        const msg = data?.message || data?.error || "로그인 실패";
-        throw new Error(msg);
+        // 백엔드 에러 응답 처리
+        if (res.status === 401) {
+          // 인증 실패
+          setError("아이디 또는 비밀번호가 올바르지 않습니다.");
+        } else if (res.status === 400) {
+          // BadRequestException
+          setError(data?.message || "입력값을 확인해주세요.");
+        } else {
+          setError(data?.message || "로그인에 실패했습니다.");
+        }
+        return;
       }
 
-      // ✅ 토큰 로컬 저장소에 저장
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      // 로그인 성공 - 다양한 응답 구조 처리
+      const rawUser = data.user || data;
+      const accessToken = data.accessToken || data.access_token;
+      const refreshToken = data.refreshToken || data.refresh_token;
 
-      // ✅ 마이페이지로 이동
-      router.push("/");
+      console.log("파싱된 원시 데이터:", { rawUser, accessToken, refreshToken }); // 디버깅용
+
+      if (rawUser && accessToken && refreshToken) {
+        // User 인터페이스에 맞게 필터링 (user_id, email만)
+        const user = {
+          user_id: rawUser.user_id || rawUser.userId,
+          email: rawUser.email
+        };
+
+        console.log("필터링된 User:", user); // 디버깅용
+
+        // authStore에 인증 상태 저장 (localStorage에 자동 저장됨)
+        setAuthenticated(user, accessToken, refreshToken);
+
+        // 쿠키에도 accessToken 저장 (서버 요청용)
+        document.cookie = `accessToken=${accessToken}; path=/; secure; samesite=strict`;
+
+        console.log("로그인 성공! 홈으로 이동합니다."); // 디버깅용
+        // 홈페이지로 이동
+        router.push("/");
+      } else {
+        console.error("토큰 정보 누락:", { rawUser, accessToken, refreshToken }); // 디버깅용
+        setError("로그인 응답 데이터가 올바르지 않습니다.");
+      }
+
     } catch (err: any) {
-      setError(err.message);
+      console.error("로그인 오류:", err);
+      setError("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }
@@ -64,8 +119,9 @@ export default function LoginForm() {
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
               required
-              className="focus:ring-2 focus:ring-sky-400"
+              className={`focus:ring-2 focus:ring-sky-400 ${fieldErrors.loginId ? 'border-red-500' : ''}`}
             />
+            {fieldErrors.loginId && <p className="text-xs text-red-600">{fieldErrors.loginId}</p>}
           </div>
 
           {/* PW */}
@@ -78,8 +134,9 @@ export default function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="focus:ring-2 focus:ring-sky-400"
+              className={`focus:ring-2 focus:ring-sky-400 ${fieldErrors.password ? 'border-red-500' : ''}`}
             />
+            {fieldErrors.password && <p className="text-xs text-red-600">{fieldErrors.password}</p>}
           </div>
 
           {/* 보조 링크 */}
@@ -112,14 +169,9 @@ export default function LoginForm() {
             <Link href="/auth/sign-up">회원가입</Link>
           </Button>
 
-          {/* 에러/결과 */}
+          {/* 에러 */}
           {error && (
             <p className="text-center text-sm text-red-600 mt-2">{error}</p>
-          )}
-          {result && (
-            <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto mt-2">
-              {JSON.stringify(result, null, 2)}
-            </pre>
           )}
         </form>
       </CardContent>

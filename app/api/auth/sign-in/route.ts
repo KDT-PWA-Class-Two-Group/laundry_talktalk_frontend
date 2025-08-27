@@ -12,13 +12,22 @@ export async function POST(req: NextRequest) {
   });
 
     // 🔹[추가] 백엔드 응답 본문(JSON 파싱 실패 대비)
-    const data = await backendRes
-      .json()
-      .catch(() => ({ message: "백엔드 응답 파싱 실패" }));
+    const data = await backendRes.json();
+    console.log("백엔드 응답:", data); // 디버깅용
 
-    // 🔹[추가] 기본 응답 JSON
+    // 🔹[수정] LoginForm에서 기대하는 구조로 응답 생성
+    const responseData = backendRes.ok ? {
+      user: data.user || data, // 사용자 정보
+      accessToken: data.accessToken || data.access_token,
+      refreshToken: data.refreshToken || data.refresh_token,
+      message: data.message
+    } : {
+      message: data.message || "로그인 실패"
+    };
+
+    // 🔹[수정] 응답 JSON 구조 변경
     const res = NextResponse.json(
-      { ok: backendRes.ok, data, message: data?.message },
+      responseData,
       { status: backendRes.status }
     );
 
