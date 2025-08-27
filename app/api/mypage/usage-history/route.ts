@@ -8,7 +8,7 @@ export async function GET(
 ) {
   
   //TODO : 현재 임시 아이디로 조회 중 -> 실제 로그인된 사용자 ID를 받아와야 함. (userId 값 변경 필요)
-  const userId = 6;
+  const userId = 4;
   // const { userId } = params;
   
   try {
@@ -20,7 +20,7 @@ export async function GET(
       headers: { "Content-Type": "application/json" },
     });
     const data = await response.json();
-    
+
     return NextResponse.json(data, { status: response.status });
 
   } catch (error) {
