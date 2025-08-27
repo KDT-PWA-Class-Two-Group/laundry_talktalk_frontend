@@ -15,19 +15,9 @@ export async function POST(req: NextRequest) {
     const data = await backendRes.json();
     console.log("백엔드 응답:", data); // 디버깅용
 
-    // 🔹[수정] LoginForm에서 기대하는 구조로 응답 생성
-    const responseData = backendRes.ok ? {
-      user: data.user || data, // 사용자 정보
-      accessToken: data.accessToken || data.access_token,
-      refreshToken: data.refreshToken || data.refresh_token,
-      message: data.message
-    } : {
-      message: data.message || "로그인 실패"
-    };
-
-    // 🔹[수정] 응답 JSON 구조 변경
+    // 🔹[수정] 백엔드 응답을 그대로 전달 (토큰은 쿠키에서 관리)
     const res = NextResponse.json(
-      responseData,
+      data, // 백엔드 응답 그대로 전달 (message, userId, email)
       { status: backendRes.status }
     );
 
