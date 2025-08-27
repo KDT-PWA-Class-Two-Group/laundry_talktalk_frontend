@@ -127,7 +127,18 @@ export default function UsageHistoryPage() {
         const data = await response.json();
         // console.log("Fetched usage history data:", data);  // 디버그용 로그 출력
         // 여기서 매핑
-        const mapped = data.map((item: any) => ({
+        interface ApiUsageItem {
+          id: string;
+          store?: { store_name?: string };
+          status?: UsageItem["status"];
+          reservation_cancel?: boolean;
+          reservation_create_time: string;
+          duration?: string;
+          code?: string;
+          price?: string;
+        }
+
+        const mapped = (data as ApiUsageItem[]).map((item) => ({
           id: item.id,
           storeName: item.store?.store_name || "알 수 없음",
           status:
