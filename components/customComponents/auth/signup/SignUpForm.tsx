@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useGoBack } from "@/lib/router-utils";
+import { Undo } from "iconoir-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -21,6 +23,7 @@ export default function SignUpForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const goBack = useGoBack();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -130,6 +133,9 @@ export default function SignUpForm() {
   return (
   <Card className="w-full max-w-md mx-4 shadow-lg rounded-2xl border border-sky-100 bg-white">
     <CardContent>
+              <div className="flex justify-end w-full">
+                <Undo width={24} height={24} className="text-gray-600 cursor-pointer hover:text-gray-800" onClick={goBack} />
+              </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-6">
         <div className="grid gap-2">
           <Label htmlFor="id">아이디</Label>
