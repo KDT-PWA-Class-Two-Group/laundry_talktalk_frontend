@@ -1,5 +1,11 @@
 export interface Store {
   id: string;
   name: string;
-  region: string;
+  address?: string;
+}
+
+export interface StoreSelectProps {
+  value: string; // storeId
+  stores: Store[];
+  onChange: (id: string) => void;
 }

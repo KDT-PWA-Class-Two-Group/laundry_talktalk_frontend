@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Store } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import StoreSelect from "@/components/admin/StoreSelect";
 import NoticeSection from "@/components/admin/NoticeAndPromotion";
@@ -15,29 +16,29 @@ type OptionsSubTab = "devices" | "options";
 
 export default function AdminShell() {
   const [tab, setTab] = useState<TabKey>("review");
-  const [selectedStoreId, setSelectedStoreId] = useState<string>("s001");
+  const [activeStoreId, setActiveStoreId] = useState<string>("s001");
   const [subTab, setSubTab] = useState<OptionsSubTab>("devices");
-  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
-  const store = stores.find((s) => s.id === selectedStoreId);
+  const [storeList, setStoreList] = useState<Store[]>([]);
+  const selectedStore = storeList.find((store) => store.id === activeStoreId);
 
   // 매장 목록을 API에서 받아옴
   useEffect(() => {
     async function fetchStores() {
       try {
-        const res = await fetch("/api/stores");
-        const data = await res.json();
+        const response = await fetch("/api/stores");
+        const data = await response.json();
         // store_id, store_name을 id, name으로 변환
-        const mapped = data.map((s: any) => ({
-          id: s.store_id,
-          name: s.store_name,
-          address: s.store_address,
+        const mapped: Store[] = data.map((store: any) => ({
+          id: store.store_id,
+          name: store.store_name,
+          address: store.store_address,
         }));
-        setStores(mapped);
-        if (mapped.length > 0 && !selectedStoreId) {
-          setSelectedStoreId(mapped[0].id);
+        setStoreList(mapped);
+        if (mapped.length > 0 && !activeStoreId) {
+          setActiveStoreId(mapped[0].id);
         }
       } catch (e) {
-        setStores([]);
+        setStoreList([]);
       }
     }
     fetchStores();
@@ -72,9 +73,9 @@ export default function AdminShell() {
 
           {/* 우: 매장 선택 */}
           <StoreSelect
-            value={selectedStoreId}
-            stores={stores}
-            onChange={setSelectedStoreId}
+            value={activeStoreId}
+            stores={storeList}
+            onChange={setActiveStoreId}
           />
         </div>
       </header>
@@ -82,8 +83,8 @@ export default function AdminShell() {
       {/* Content */}
       <main className="mx-auto max-w-6xl px-4 py-6">
         {tab === "review" &&
-          (store ? (
-            <ReviewSection storeName={store.name} />
+          (selectedStore ? (
+            <ReviewSection storeName={selectedStore.name} />
           ) : (
             <div className="rounded-lg border bg-white p-6 text-sm text-slate-600">
               선택된 매장을 찾을 수 없습니다. 매장을 다시 선택해 주세요.
@@ -91,8 +92,8 @@ export default function AdminShell() {
           ))}
 
         {tab === "notice" &&
-          (store ? (
-            <NoticeSection storeId={store.id} />
+          (selectedStore ? (
+            <NoticeSection storeId={selectedStore.id} />
           ) : (
             <div className="rounded-lg border bg-white p-6 text-sm text-slate-600">
               선택된 매장이 없습니다.
@@ -132,4 +133,3 @@ export default function AdminShell() {
     </div>
   );
 }
-7;
