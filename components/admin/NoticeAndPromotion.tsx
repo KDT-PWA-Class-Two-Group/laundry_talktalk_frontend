@@ -1,19 +1,19 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 import {
-  useMemo,
-  useRef,
-  useState,
   ChangeEvent,
   useCallback,
   useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, X } from "lucide-react";
 
 // 타입 정의
 type NoticeType = "공지" | "홍보";
-interface NoticeItem {
+export interface NoticeItem {
   id: string;
   title: string;
   type: NoticeType;
@@ -24,10 +24,22 @@ interface NoticeItem {
   fileName?: string;
 }
 
-function formatToDotDate(input: string) {
-  if (!input) return "";
-  const [y, m, d] = input.split("-");
-  return `${y}.${m}.${d}`;
+// 스토어 데이터 타입 정의
+interface StoreData {
+  store_id: string;
+  store_name: string;
+}
+
+// API 응답 공지사항 데이터 타입
+export interface ApiNoticeData {
+  store_notice_event_id: number;
+  store_notice_event_title: string;
+  store_notice_event_type: boolean;
+  store_notice_event_create_time: string;
+  store_notice_event_start_time: string;
+  store_notice_event_end_time: string;
+  store_notice_event_contents: string;
+  store_notice_event_image_url: string;
 }
 
 // 간단 모달
@@ -63,7 +75,7 @@ function Modal({
   );
 }
 
-export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
+export default function NoticeAndPromotion({ storeId }: { storeId: string }) {
   // 날짜 및 초기 폼
   const today = new Date().toISOString().slice(0, 10);
   const emptyForm: NoticeItem = {
@@ -77,6 +89,8 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
     fileName: "",
   };
 
+  type PendingPikcer = "start" | "end" | null;
+
   // 상태 선언
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit" | "view">("view");
@@ -89,49 +103,68 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
   const startRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [pendingPicker, setPendingPicker] = useState<"start" | "end" | null>(null);
-  const store = storeId || "";
+  const [_pendingPicker, setPendingPicker] = useState<PendingPikcer>(null);
+  // const store = storeId || "";
 
   // 선택된 아이템
   const selected = selectedId ? items.find((n) => n.id === selectedId) : null;
 
-  // 매장명 fetch
+  // 매장 데이터 및 공지사항 데이터 fetch
   useEffect(() => {
-    if (!store) return;
-    fetch("/api/stores")
-      .then((res) => res.json())
-      .then((data) => {
-        const found = data.find((s: any) => s.store_id?.toString() === store);
-        setStoreName(found?.store_name ?? "");
-      });
-  }, [store]);
+    if (!storeId) {
+      setStoreName("");
+      setItems([]);
+      return;
+    }
 
-  // 데이터 상태: API 연동
-  useEffect(() => {
-    if (!store) return;
-    async function fetchNotices() {
+    // 매장명과 공지사항을 병렬로 fetch
+    const fetchStoreData = async () => {
       try {
-        const res = await fetch(`/app/api/posts/store/${store}`);
-        const data = await res.json();
-        setItems(
-          data.map((item: any) => ({
-            id: item.store_notice_event_id?.toString() ?? "",
-            title: item.store_notice_event_title,
-            type: item.store_notice_event_type === false ? "공지" : "홍보",
-            createdAt:
-              item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, ".") ?? "",
-            startAt: item.store_notice_event_start_time ?? "",
-            endAt: item.store_notice_event_end_time ?? "",
-            content: item.store_notice_event_contents ?? "",
-            fileName: item.store_notice_event_image_url ?? "",
-          }))
-        );
-      } catch (e) {
+        // 매장 정보와 공지사항 동시 요청
+        const [storeRes, noticesRes] = await Promise.all([
+          fetch("/api/stores"),
+          fetch(`/app/api/posts/store/${storeId}`)
+        ]);
+
+        // 매장명 설정
+        if (storeRes.ok) {
+          const storeData: StoreData[] = await storeRes.json();
+          const found = storeData.find(
+            (s: StoreData) => s.store_id?.toString() === storeId
+          );
+          setStoreName(found?.store_name ?? "");
+        }
+
+        // 공지사항 설정
+        if (noticesRes.ok) {
+          const noticesData: ApiNoticeData[] = await noticesRes.json();
+          setItems(
+            noticesData.map((item: ApiNoticeData) => ({
+              id: item.store_notice_event_id?.toString() ?? "",
+              title: item.store_notice_event_title,
+              type: item.store_notice_event_type === false ? "공지" : "홍보",
+              createdAt:
+                item.store_notice_event_create_time
+                  ?.slice(0, 10)
+                  ?.replace(/-/g, ".") ?? "",
+              startAt: item.store_notice_event_start_time ?? "",
+              endAt: item.store_notice_event_end_time ?? "",
+              content: item.store_notice_event_contents ?? "",
+              fileName: item.store_notice_event_image_url ?? "",
+            }))
+          );
+        } else {
+          setItems([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        setStoreName("");
         setItems([]);
       }
-    }
-    fetchNotices();
-  }, [store]);
+    };
+
+    fetchStoreData();
+  }, [storeId]);
 
   // 정렬된 리스트
   const sortedItems = useMemo(() => {
@@ -203,23 +236,23 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            store_id: store,
-            store_notice_event_type: form.type === "공지" ? false : true,
+            store_id: storeId,
             store_notice_event_title: form.title,
-            store_notice_event_contents: form.content,
-            store_notice_event_image_url: form.fileName,
+            store_notice_event_type: form.type === "공지" ? false : true,
             store_notice_event_start_time: form.startAt,
             store_notice_event_end_time: form.endAt,
+            store_notice_event_contents: form.content,
+            store_notice_event_image_url: form.fileName,
           }),
         });
         if (res.ok) {
           setOpen(false);
           setMode("view");
           // 목록 새로고침
-          const refreshed = await fetch(`/app/api/posts/store/${store}`);
+          const refreshed = await fetch(`/app/api/posts/store/${storeId}`);
           const data = await refreshed.json();
           setItems(
-            data.map((item: any) => ({
+            data.map((item: ApiNoticeData) => ({
               id: item.store_notice_event_id?.toString() ?? "",
               title: item.store_notice_event_title,
               type: item.store_notice_event_type === false ? "공지" : "홍보",
@@ -234,7 +267,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
             }))
           );
         }
-      } catch (e) {}
+      } catch {}
     } else if (mode === "edit" && selected) {
       // 수정
       try {
@@ -253,10 +286,10 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
         if (res.ok) {
           setMode("view");
           // 목록 새로고침
-          const refreshed = await fetch(`/app/api/posts/store/${store}`);
+          const refreshed = await fetch(`/app/api/posts/store/${storeId}`);
           const data = await refreshed.json();
           setItems(
-            data.map((item: any) => ({
+            data.map((item: ApiNoticeData) => ({
               id: item.store_notice_event_id?.toString() ?? "",
               title: item.store_notice_event_title,
               type: item.store_notice_event_type === false ? "공지" : "홍보",
@@ -271,7 +304,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
             }))
           );
         }
-      } catch (e) {}
+      } catch {}
     }
   };
 
@@ -279,30 +312,31 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
   const handleDelete = async () => {
     if (!selected) return;
     if (!confirm("삭제하시겠습니까?")) return;
-    try {
-      const res = await fetch(`/app/api/posts/${selected.id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        closeModal();
-        // 목록 새로고침
-        const refreshed = await fetch(`/app/api/posts/store/${store}`);
-        const data = await refreshed.json();
-        setItems(
-          data.map((item: any) => ({
-            id: item.store_notice_event_id?.toString() ?? "",
-            title: item.store_notice_event_title,
-            type: item.store_notice_event_type === false ? "공지" : "홍보",
-            createdAt:
-              item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, ".") ?? "",
-            startAt: item.store_notice_event_start_time ?? "",
-            endAt: item.store_notice_event_end_time ?? "",
-            content: item.store_notice_event_contents ?? "",
-            fileName: item.store_notice_event_image_url ?? "",
-          }))
-        );
-      }
-    } catch (e) {}
+
+    const res = await fetch(`/app/api/posts/${selected.id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      closeModal();
+      // 목록 새로고침
+      const refreshed = await fetch(`/app/api/posts/store/${storeId}`);
+      const data = await refreshed.json();
+      setItems(
+        data.map((item: ApiNoticeData) => ({
+          id: item.store_notice_event_id?.toString() ?? "",
+          title: item.store_notice_event_title,
+          type: item.store_notice_event_type === false ? "공지" : "홍보",
+          createdAt:
+            item.store_notice_event_create_time
+              ?.slice(0, 10)
+              ?.replace(/-/g, ".") ?? "",
+          startAt: item.store_notice_event_start_time ?? "",
+          endAt: item.store_notice_event_end_time ?? "",
+          content: item.store_notice_event_contents ?? "",
+          fileName: item.store_notice_event_image_url ?? "",
+        }))
+      );
+    }
   };
 
   // 최종 return 블록
@@ -311,7 +345,9 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
       {/* 선택된 매장명 표시 */}
       <div className="flex items-center gap-3">
         <div className="text-lg font-semibold">
-          {storeName ? `선택된 지점: ${storeName}` : "지점이 선택되지 않았습니다."}
+          {storeName
+            ? `선택된 지점: ${storeName}`
+            : "지점이 선택되지 않았습니다."}
         </div>
       </div>
       <div className="flex items-center gap-3">

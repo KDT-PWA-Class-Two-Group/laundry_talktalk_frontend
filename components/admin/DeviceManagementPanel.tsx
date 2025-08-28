@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 type DeviceKind = "세탁기" | "건조기" | "기타";
 interface Course {
@@ -125,7 +125,11 @@ function OptionPickerModal({
   ) =>
     set((p) => {
       const n = new Set(p);
-      n.has(id) ? n.delete(id) : n.add(id);
+      if (n.has(id)) {
+        n.delete(id);
+      } else {
+        n.add(id);
+      }
       return n;
     });
 

@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
     );
 
     // 백엔드에서 쿠키 삭제 헤더를 전달
-    const anyHeaders = backendRes.headers as any;
+    const headers = backendRes.headers as Headers & { getSetCookie?: () => string[] };
     const setCookies: string[] =
-      typeof anyHeaders.getSetCookie === "function"
-        ? anyHeaders.getSetCookie()
+      typeof headers.getSetCookie === "function"
+        ? headers.getSetCookie()
         : backendRes.headers.get("set-cookie")
         ? [backendRes.headers.get("set-cookie")!]
         : [];
@@ -33,9 +33,10 @@ export async function POST(req: NextRequest) {
     }
 
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Logout proxy error";
     return NextResponse.json(
-      { ok: false, message: err.message || "Logout proxy error" },
+      { ok: false, message: errorMessage },
       { status: 500 }
     );
   }

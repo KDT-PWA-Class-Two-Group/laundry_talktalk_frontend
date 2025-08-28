@@ -1,10 +1,7 @@
-// components/admin/region/RegionSelect.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Command,
   CommandEmpty,
@@ -13,6 +10,18 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useEffect, useState } from "react";
+
+// 스토어 데이터 타입 정의
+interface StoreData {
+  store_address: string;
+}
+
+// 스토어 데이터 타입 정의
+interface StoreData {
+  store_address: string;
+}
 
 export default function RegionSelect({
   value,
@@ -40,7 +49,7 @@ export default function RegionSelect({
         // 주소에서 시/구 추출
         const citySet = new Set<string>();
         const map: Record<string, Set<string>> = {};
-        data.forEach((store: any) => {
+        data.forEach((store: StoreData) => {
           const [cityName, districtName] = store.store_address
             .split(" ")
             .slice(0, 2);

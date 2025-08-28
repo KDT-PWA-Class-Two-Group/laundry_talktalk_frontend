@@ -1,4 +1,4 @@
-import AuthPageTitle from "../auth-page-title";
+import AuthPageTitle from "@/components/customComponents/auth/common/auth-page-title";
 import FindPwForm from "@/components/customComponents/auth/findpw/FindPwForm";
 
 export default function FindPwPage() {

@@ -1,4 +1,4 @@
-import AuthPageTitle from "../auth-page-title";
+import AuthPageTitle from "@/components/customComponents/auth/common/auth-page-title";
 import FindIdForm from "@/components/customComponents/auth/findid/FindIdForm";
 
 export default function FindIdPage() {

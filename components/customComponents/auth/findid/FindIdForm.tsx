@@ -36,7 +36,7 @@ export default function FindIdForm() {
         body: JSON.stringify(form),
       });
 
-      const data = await res.json().catch(() => ({} as any));
+      const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "아이디 찾기 실패");
 
       const idFromData =
@@ -48,8 +48,9 @@ export default function FindIdForm() {
 
       if (!idFromData) throw new Error("조회 결과에 ID가 없습니다.");
       setFoundId(String(idFromData));
-    } catch (err: any) {
-      setError(err?.message ?? "아이디 찾기 중 오류 발생");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "아이디 찾기 중 오류 발생";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

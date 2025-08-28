@@ -2,7 +2,17 @@
 import { ArrowDownCircle } from "iconoir-react";
 import { useState } from "react";
 
-export default function EventDropdown({ events }: { events: any[] }) {
+// 이벤트 데이터 타입 정의
+interface EventData {
+  id: string;
+  title: string;
+  content: string;
+  startDate: string;
+  endDate: string;
+  discount?: number;
+}
+
+export default function EventDropdown({ events }: { events: EventData[] }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter, setFilter] = useState("진행중 이벤트");
   const now = new Date();

@@ -1,4 +1,4 @@
-import AuthPageTitle from "../auth-page-title";
+import AuthPageTitle from "@/components/customComponents/auth/common/auth-page-title";
 import LoginForm from "@/components/customComponents/auth/signin/LoginForm";
 
 export default function SignInPage() {
