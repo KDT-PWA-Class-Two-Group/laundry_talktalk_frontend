@@ -2,6 +2,14 @@
 // Example: If the correct path is "@/components/laundry-reservation/LaundryReservationDetail", update as below.
 import LaundryReservationDetail from "@/components/customComponents/laundry-reservation/LaundryReservationDetail";
 
-export default function LaundryReservationDetailPage({ params }: { params: { storeId: string } }) {
+// export default function LaundryReservationDetailPage({ params }: { params: { storeId: string } }) {
+//   return <LaundryReservationDetail storeId={params.storeId} />;
+// }
+
+export default async function LaundryReservationDetailPage({
+  params,
+}: {
+  params: { storeId: string };
+}) {
   return <LaundryReservationDetail storeId={params.storeId} />;
 }
