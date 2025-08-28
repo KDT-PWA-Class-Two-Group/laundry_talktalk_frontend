@@ -1,7 +1,7 @@
 // components/admin/region/RegionSelect.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,23 +23,41 @@ export default function RegionSelect({
   onClose: () => void;
   onApply: (v: { city: string; districts: string[] }) => void;
 }) {
-  // 데이터
-  const cities = [{ key: "서울" }, { key: "경기" }, { key: "부산" }];
-  const map: Record<string, { name: string }[]> = {
-    서울: [
-      { name: "강남구" },
-      { name: "강서구" },
-      { name: "구로구" },
-      { name: "마포구" },
-      { name: "성동구" },
-    ],
-    경기: [{ name: "성남시" }, { name: "수원시" }, { name: "용인시" }],
-    부산: [{ name: "해운대구" }, { name: "부산진구" }, { name: "남구" }],
-  };
+  // 동적 데이터
+  const [cities, setCities] = useState<string[]>([]);
+  const [districtsMap, setDistrictsMap] = useState<Record<string, string[]>>(
+    {}
+  );
 
   // 상태 (단일 선택)
   const [city, setCity] = useState<string>(value.city);
   const [district, setDistrict] = useState<string>(value.districts[0] ?? "");
+
+  useEffect(() => {
+    fetch("/api/stores")
+      .then((res) => res.json())
+      .then((data) => {
+        // 주소에서 시/구 추출
+        const citySet = new Set<string>();
+        const map: Record<string, Set<string>> = {};
+        data.forEach((store: any) => {
+          const [cityName, districtName] = store.store_address
+            .split(" ")
+            .slice(0, 2);
+          if (cityName && districtName) {
+            citySet.add(cityName);
+            if (!map[cityName]) map[cityName] = new Set();
+            map[cityName].add(districtName);
+          }
+        });
+        setCities(Array.from(citySet));
+        setDistrictsMap(
+          Object.fromEntries(
+            Object.entries(map).map(([k, v]) => [k, Array.from(v)])
+          )
+        );
+      });
+  }, []);
 
   return (
     <div
@@ -67,18 +85,18 @@ export default function RegionSelect({
                 <ScrollArea className="h-[260px]">
                   {cities.map((c) => (
                     <CommandItem
-                      key={c.key}
-                      value={c.key}
+                      key={c}
+                      value={c}
                       onSelect={() => {
-                        setCity(c.key);
+                        setCity(c);
                         setDistrict(""); // 시/도 변경 시 선택 초기화
                       }}
                       className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                        city === c.key ? "bg-slate-100 font-semibold" : ""
+                        city === c ? "bg-slate-100 font-semibold" : ""
                       }`}
                     >
-                      <span>{c.key}</span>
-                      {city === c.key && (
+                      <span>{c}</span>
+                      {city === c && (
                         <svg
                           width="16"
                           height="16"
@@ -102,23 +120,19 @@ export default function RegionSelect({
 
           <ScrollArea className="max-h-[296px] pr-1">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-              {map[city]?.map((d) => {
-                const checked = district === d.name;
+              {districtsMap[city]?.map((d) => {
+                const checked = district === d;
                 return (
-                  <label
-                    key={d.name}
-                    className="flex items-center gap-2 text-sm"
-                  >
+                  <label key={d} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={checked}
-                      // CheckedState: boolean | "indeterminate"
                       onCheckedChange={(ck) => {
                         const isOn = ck === true;
-                        setDistrict(isOn ? d.name : "");
+                        setDistrict(isOn ? d : "");
                       }}
                       className="border-slate-300"
                     />
-                    <span>{d.name}</span>
+                    <span>{d}</span>
                   </label>
                 );
               })}
