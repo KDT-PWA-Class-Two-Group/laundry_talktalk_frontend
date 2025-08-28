@@ -1,53 +1,45 @@
+// app/api/machine/estimate/route.ts
+// 예상 비용/시간 계산을 위한 프록시 API
+
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
+// 환경 변수에서 백엔드 URL을 안전하게 가져오는 함수
+const getBackendUrl = () => {
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!backendUrl) {
+    throw new Error("NEXT_PUBLIC_API_URL 환경 변수가 설정되지 않았습니다.");
+  }
+  return backendUrl;
+};
 
+// POST 요청을 처리하는 핸들러
+export async function POST(req: NextRequest) {
   try {
-    // ✅ 나중에 백엔드 붙으면 여기서 호출
-    /*
-    const backendRes = await fetch(`${process.env.BACKEND_URL}/api/price-estimator`, {
+    const backendUrl = getBackendUrl();
+    const requestBody = await req.json();
+
+    // 백엔드 API의 엔드포인트 URL을 완성합니다.
+    const backendApiUrl = `${backendUrl}/api/machine/estimate`;
+
+    const response = await fetch(backendApiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
     });
 
-    const data = await backendRes.json();
-    return NextResponse.json(
-      { ok: backendRes.ok, data, message: data?.message },
-      { status: backendRes.status }
-    );
-    */
-
-    // ✅ 지금은 프론트에서도 확인할 수 있도록 mock 계산
-    const { washCourse, washOption, useDry, dryTime, dryOption } = body;
-
-    let washPrice =
-      washCourse === "표준" ? 4000 : washCourse === "이불" ? 6000 : 5000;
-    if (washOption === "헹굼 1회 추가") washPrice += 500;
-    if (washOption === "헹굼 2회 추가") washPrice += 1000;
-
-    let dryPrice = 0;
-    let dryMinutes = dryTime || 0;
-    if (useDry && dryTime) {
-      dryPrice = dryMinutes * 200;
-      if (dryOption === "고온") dryPrice += 500;
-      if (dryOption === "저온") dryPrice -= 300;
+    if (!response.ok) {
+      const errorData = await response.json();
+      return NextResponse.json(errorData, { status: response.status });
     }
 
-    const result = {
-      wash: washPrice,
-      dry: dryPrice,
-      total: washPrice + dryPrice,
-      time: 60 + dryMinutes,
-    };
-
-    return NextResponse.json({ ok: true, data: result }, { status: 200 });
-  } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, message: err.message || "Estimate error" },
-      { status: 500 }
-    );
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error("API 라우트 오류:", error);
+    const message =
+      error instanceof Error ? error.message : "API 요청 중 오류 발생";
+    return NextResponse.json({ message }, { status: 500 });
   }
 }
