@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import StoreSelect from "@/components/admin/StoreSelect";
 import NoticeSection from "@/components/admin/NoticeAndPromotion";
@@ -10,8 +10,6 @@ import ReviewSection from "@/components/admin/Review Management";
 import DeviceManagementPanel from "@/components/admin/DeviceManagementPanel";
 import OptionsManagementPanel from "@/components/admin/OptionsPricingDialog";
 
-import { STORES } from "@/lib/mock";
-
 type TabKey = "review" | "notice" | "options";
 type OptionsSubTab = "devices" | "options";
 
@@ -19,8 +17,31 @@ export default function AdminShell() {
   const [tab, setTab] = useState<TabKey>("review");
   const [selectedStoreId, setSelectedStoreId] = useState<string>("s001");
   const [subTab, setSubTab] = useState<OptionsSubTab>("devices");
+  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
+  const store = stores.find((s) => s.id === selectedStoreId);
 
-  const store = STORES.find((s) => s.id === selectedStoreId);
+  // 매장 목록을 API에서 받아옴
+  useEffect(() => {
+    async function fetchStores() {
+      try {
+        const res = await fetch("/api/stores");
+        const data = await res.json();
+        // store_id, store_name을 id, name으로 변환
+        const mapped = data.map((s: any) => ({
+          id: s.store_id,
+          name: s.store_name,
+          address: s.store_address,
+        }));
+        setStores(mapped);
+        if (mapped.length > 0 && !selectedStoreId) {
+          setSelectedStoreId(mapped[0].id);
+        }
+      } catch (e) {
+        setStores([]);
+      }
+    }
+    fetchStores();
+  }, []);
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
@@ -50,7 +71,11 @@ export default function AdminShell() {
           </div>
 
           {/* 우: 매장 선택 */}
-          <StoreSelect value={selectedStoreId} onChange={setSelectedStoreId} />
+          <StoreSelect
+            value={selectedStoreId}
+            stores={stores}
+            onChange={setSelectedStoreId}
+          />
         </div>
       </header>
 
@@ -67,16 +92,15 @@ export default function AdminShell() {
 
         {tab === "notice" &&
           (store ? (
-            <NoticeSection storeName={store.name} />
+            <NoticeSection storeId={store.id} />
           ) : (
             <div className="rounded-lg border bg-white p-6 text-sm text-slate-600">
-              선택된 매장을 찾을 수 없습니다. 매장을 다시 선택해 주세요.
+              선택된 매장이 없습니다.
             </div>
           ))}
 
         {tab === "options" && (
           <div className="space-y-4">
-            {/* 옵션 탭 내부 세그먼트: shadcn Button 사용, 중앙 정렬 */}
             <div className="flex justify-center">
               <div className="inline-flex items-center rounded-full bg-slate-100 p-1">
                 <Button
@@ -108,3 +132,4 @@ export default function AdminShell() {
     </div>
   );
 }
+7;
