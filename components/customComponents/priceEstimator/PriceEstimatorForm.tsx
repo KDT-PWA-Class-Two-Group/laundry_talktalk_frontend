@@ -50,7 +50,7 @@ export default function PriceEstimatorForm() {
     if (washOption === "헹굼 2회 추가") washPrice += 1000;
 
     let dryPrice = 0;
-    let dryMinutes = dryTime || 0;
+    const dryMinutes = dryTime || 0;
     if (useDry && dryTime) {
       dryPrice = dryMinutes * 200;
       if (dryOption === "고온") dryPrice += 500;

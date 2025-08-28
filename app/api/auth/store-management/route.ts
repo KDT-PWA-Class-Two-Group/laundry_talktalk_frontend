@@ -76,9 +76,10 @@ export async function PATCH(req: NextRequest) {
         "content-type": res.headers.get("content-type") ?? "application/json",
       },
     });
-  } catch (e: any) {
+  } catch (err:unknown) {
+
     return NextResponse.json(
-      { message: e.message ?? "PATCH 실패" },
+      { message: err instanceof Error ? err.message : "PATCH 실패" },
       { status: 400 }
     );
   }

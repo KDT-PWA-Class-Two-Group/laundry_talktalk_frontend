@@ -122,7 +122,7 @@ export default function SignUpForm() {
         router.push("/auth/sign-in");
       }, 1000);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("회원가입 오류:", err);
       setError("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {

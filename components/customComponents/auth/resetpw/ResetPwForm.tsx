@@ -39,12 +39,13 @@ export default function ResetPwForm({ token: initialToken }: { token?: string })
         body: JSON.stringify({ token, newPassword }),
       });
 
-      const data = await res.json().catch(() => ({} as any));
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || "비밀번호 재설정 실패");
 
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.message ?? "비밀번호 재설정 중 오류 발생");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "비밀번호 재설정 중 오류 발생";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

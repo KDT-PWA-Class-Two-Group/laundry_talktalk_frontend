@@ -1,4 +1,4 @@
-import AuthPageTitle from "../auth-page-title";
+import AuthPageTitle from "@/components/customComponents/auth/common/auth-page-title";
 import ResetPwForm from "@/components/customComponents/auth/resetpw/ResetPwForm";
 
 export default async function ResetPasswordPage({

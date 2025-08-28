@@ -24,9 +24,10 @@ export async function POST(req: NextRequest) {
       { ok: backendRes.ok, data, message: data?.message },
       { status: backendRes.status }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Sign-up proxy error";
     return NextResponse.json(
-      { ok: false, message: err.message || "Sign-up proxy error" },
+      { ok: false, message: errorMessage },
       { status: 500 }
     );
   }

@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
     // 🔹[추가] 백엔드가 내려준 액세스/리프레시 토큰 쿠키를 프론트로 전달
     // - Node/Next 런타임에 따라 getSetCookie()가 존재할 때가 있음 → 있으면 사용
     // - 없으면 단일 set-cookie 헤더만 전달 (폴백)
-    const anyHeaders = backendRes.headers as any;
+    const headers = backendRes.headers as Headers & { getSetCookie?: () => string[] };
     const setCookies: string[] =
-      typeof anyHeaders.getSetCookie === "function"
-        ? anyHeaders.getSetCookie()
+      typeof headers.getSetCookie === "function"
+        ? headers.getSetCookie()
         : backendRes.headers.get("set-cookie")
         ? [backendRes.headers.get("set-cookie")!]
         : [];
@@ -37,9 +37,10 @@ export async function POST(req: NextRequest) {
     }
 
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Login proxy error";
     return NextResponse.json(
-      { ok: false, message: err.message || "Login proxy error" },
+      { ok: false, message: errorMessage },
       { status: 500 }
     );
   }

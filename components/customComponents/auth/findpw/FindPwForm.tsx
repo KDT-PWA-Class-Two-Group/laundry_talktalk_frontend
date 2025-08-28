@@ -34,8 +34,9 @@ export default function FindPwForm() {
       if (!res.ok) throw new Error(data?.message || "비밀번호 찾기 실패");
 
       setSent(true);
-    } catch (err: any) {
-      setError(err?.message ?? "비밀번호 찾기 요청 중 오류 발생");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "비밀번호 찾기 요청 중 오류 발생";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
