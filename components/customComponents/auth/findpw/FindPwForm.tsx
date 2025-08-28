@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
+import { useGoBack } from "@/lib/router-utils";
+import { Undo } from "iconoir-react";
+import { useState } from "react";
 
 export default function FindPwForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const goBack = useGoBack();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +30,7 @@ export default function FindPwForm() {
         body: JSON.stringify({ email }),
       });
 
-      const data = await res.json().catch(() => ({} as any));
+      const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "비밀번호 찾기 실패");
 
       setSent(true);
@@ -38,9 +41,14 @@ export default function FindPwForm() {
     }
   };
 
+ 
+
   return (
     <Card className="w-full max-w-md shadow-lg rounded-2xl border border-sky-100 bg-white">
       <CardContent>
+        <div className="flex justify-end w-full">
+          <Undo width={24} height={24} className="text-gray-600 cursor-pointer hover:text-gray-800" onClick={goBack} />
+        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-6">
           <div className="grid gap-2">
             <Label htmlFor="email">이메일</Label>

@@ -6,9 +6,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 export type AuthStore = {
   User: User | null;
   isAuthenticated: boolean;
-  accessToken: string | null;
-  refreshToken: string | null;
-  setAuthenticated: (user: User, accessToken: string, refreshToken: string) => void;
+  setAuthenticated: (user: User) => void;
   logout: () => void;
 };
 
@@ -17,35 +15,31 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       User: null,
       isAuthenticated: false,
-      accessToken: null,
-      refreshToken: null,
-      setAuthenticated: (user: User, accessToken: string, refreshToken: string) =>
+      setAuthenticated: (user: User) =>
         set({
           User: user,
           isAuthenticated: true,
-          accessToken,
-          refreshToken,
         }),
       logout: () => {
-        // document.cookie를 사용하여 accessToken 쿠키를 안전하게 제거
-        document.cookie = "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        // 백엔드 로그아웃 API 호출하여 HttpOnly 쿠키 삭제
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        }).catch(console.error);
+        
         set({
           User: null,
           isAuthenticated: false,
-          accessToken: null,
-          refreshToken: null,
         });
       },
     }),
     {
       name: "auth-storage", // 로컬 스토리지에 저장될 key
       storage: createJSONStorage(() => localStorage),
-      // 중요한 인증 정보만 localStorage에 저장
+      // 사용자 정보와 인증 상태만 localStorage에 저장 (토큰은 HttpOnly 쿠키에서 관리)
       partialize: (state) => ({ 
         User: state.User, 
-        isAuthenticated: state.isAuthenticated,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken 
+        isAuthenticated: state.isAuthenticated
       }),
     }
   )

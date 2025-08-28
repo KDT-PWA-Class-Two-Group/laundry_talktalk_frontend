@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
+import { useGoBack } from "@/lib/router-utils";
+import { Undo } from "iconoir-react";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export default function ResetPwForm({ token: initialToken }: { token?: string }) {
   const searchParams = useSearchParams();
@@ -16,6 +18,7 @@ export default function ResetPwForm({ token: initialToken }: { token?: string })
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const goBack = useGoBack();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +53,9 @@ export default function ResetPwForm({ token: initialToken }: { token?: string })
   return (
   <Card className="w-full max-w-md mx-4 shadow-lg rounded-2xl border border-sky-100 bg-white">
     <CardContent>
+              <div className="flex justify-end w-full">
+                <Undo width={24} height={24} className="text-gray-600 cursor-pointer hover:text-gray-800" onClick={goBack} />
+              </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-6">
         <div className="grid gap-2">
           <Label htmlFor="newPassword">새 비밀번호</Label>
