@@ -14,9 +14,7 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    const data = await backendRes.json().catch(() => ({
-      message: "백엔드 응답 파싱 실패",
-    }));
+    const data = await backendRes.json();
 
     return NextResponse.json(
       { ok: backendRes.ok, data, message: data?.message },
