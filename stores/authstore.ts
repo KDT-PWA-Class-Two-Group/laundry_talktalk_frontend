@@ -21,8 +21,12 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: true,
         }),
       logout: () => {
-        // document.cookie를 사용하여 accessToken 쿠키를 안전하게 제거
-        document.cookie = "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        // 백엔드 로그아웃 API 호출하여 HttpOnly 쿠키 삭제
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        }).catch(console.error);
+        
         set({
           User: null,
           isAuthenticated: false,
@@ -32,8 +36,11 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: "auth-storage", // 로컬 스토리지에 저장될 key
       storage: createJSONStorage(() => localStorage),
-      // partialize 옵션을 사용해 필요한 상태만 저장할 수도 있습니다.
-      // partialize: (state) => ({ currentUser: state.currentUser, isAuthenticated: state.isAuthenticated }),
+      // 사용자 정보와 인증 상태만 localStorage에 저장 (토큰은 HttpOnly 쿠키에서 관리)
+      partialize: (state) => ({ 
+        User: state.User, 
+        isAuthenticated: state.isAuthenticated
+      }),
     }
   )
 );

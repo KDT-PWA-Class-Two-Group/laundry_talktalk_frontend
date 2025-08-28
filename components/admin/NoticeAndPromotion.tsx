@@ -63,72 +63,77 @@ function Modal({
   );
 }
 
-export default function NoticeSection({ storeName }: { storeName: string }) {
-  // 매장/정렬
-  const [store, setStore] = useState<string>(storeName || "둔산점");
-  const [sortAsc, setSortAsc] = useState<boolean>(true);
-
-  // 더미데이터 (여기서는 리터럴만!)
-  const [items, setItems] = useState<NoticeItem[]>([
-    {
-      id: "n1",
-      title: "할인~",
-      type: "홍보",
-      createdAt: "2025.08.14",
-      startAt: "2025-08-14",
-      endAt: "2025-08-14",
-      content: "예시 홍보 내용",
-    },
-    {
-      id: "n2",
-      title: "일 안함~",
-      type: "공지", // ← form.type 쓰지 않음
-      createdAt: "2025.08.14",
-      startAt: "2025-08-14",
-      endAt: "2025-08-14",
-      content: "예시 공지 내용",
-    },
-  ]);
-
-  // 선택/모달
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = useMemo(
-    () => items.find((n) => n.id === selectedId) || null,
-    [items, selectedId]
-  );
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"create" | "view" | "edit">("create");
-
-  // 폼
+export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
+  // 날짜 및 초기 폼
   const today = new Date().toISOString().slice(0, 10);
-  const emptyForm = {
+  const emptyForm: NoticeItem = {
+    id: "",
     title: "",
+    type: "공지",
+    createdAt: today.replace(/-/g, "."),
     startAt: today,
     endAt: today,
     content: "",
     fileName: "",
-    type: "공지" as NoticeType,
   };
-  const [form, setForm] = useState<typeof emptyForm>(emptyForm);
 
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const titleRef = useRef<HTMLInputElement | null>(null);
-  const startRef = useRef<HTMLInputElement | null>(null);
-  const endRef = useRef<HTMLInputElement | null>(null);
-  const [pendingPicker, setPendingPicker] = useState<"start" | "end" | null>(
-    null
-  );
+  // 상태 선언
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"create" | "edit" | "view">("view");
+  const [form, setForm] = useState<NoticeItem>({ ...emptyForm });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
+  const [storeName, setStoreName] = useState<string>("");
+  const [items, setItems] = useState<NoticeItem[]>([]);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingPicker, setPendingPicker] = useState<"start" | "end" | null>(null);
+  const store = storeId || "";
 
-  // edit 전환 뒤 달력 오픈
+  // 선택된 아이템
+  const selected = selectedId ? items.find((n) => n.id === selectedId) : null;
+
+  // 매장명 fetch
   useEffect(() => {
-    if (mode === "edit" && pendingPicker) {
-      const el = pendingPicker === "start" ? startRef.current : endRef.current;
-      el?.focus();
-      setTimeout(() => el?.showPicker?.(), 0);
-      setPendingPicker(null);
-    }
-  }, [mode, pendingPicker]);
+    if (!store) return;
+    fetch("/api/stores")
+      .then((res) => res.json())
+      .then((data) => {
+        const found = data.find((s: any) => s.store_id?.toString() === store);
+        setStoreName(found?.store_name ?? "");
+      });
+  }, [store]);
 
+  // 데이터 상태: API 연동
+  useEffect(() => {
+    if (!store) return;
+    async function fetchNotices() {
+      try {
+        const res = await fetch(`/app/api/posts/store/${store}`);
+        const data = await res.json();
+        setItems(
+          data.map((item: any) => ({
+            id: item.store_notice_event_id?.toString() ?? "",
+            title: item.store_notice_event_title,
+            type: item.store_notice_event_type === false ? "공지" : "홍보",
+            createdAt:
+              item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, ".") ?? "",
+            startAt: item.store_notice_event_start_time ?? "",
+            endAt: item.store_notice_event_end_time ?? "",
+            content: item.store_notice_event_contents ?? "",
+            fileName: item.store_notice_event_image_url ?? "",
+          }))
+        );
+      } catch (e) {
+        setItems([]);
+      }
+    }
+    fetchNotices();
+  }, [store]);
+
+  // 정렬된 리스트
   const sortedItems = useMemo(() => {
     const copy = [...items];
     copy.sort((a, b) => {
@@ -143,23 +148,25 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
   const openCreate = () => {
     setSelectedId(null);
     setMode("create");
-    setForm(emptyForm);
+    setForm({ ...emptyForm });
     setOpen(true);
     setTimeout(() => titleRef.current?.focus(), 0);
   };
 
   const openView = (id: string) => {
-    const target = items.find((n) => n.id === id);
-    if (!target) return;
+    const targetItem = items.find((n) => n.id === id);
+    if (!targetItem) return;
     setSelectedId(id);
-    setMode("edit"); // 바로 수정
+    setMode("edit");
     setForm({
-      title: target.title,
-      startAt: target.startAt || today,
-      endAt: target.endAt || today,
-      content: target.content || "",
-      fileName: target.fileName || "",
-      type: target.type, // 기존 태그 유지
+      id: targetItem.id,
+      title: targetItem.title,
+      type: targetItem.type,
+      createdAt: targetItem.createdAt || today.replace(/-/g, "."),
+      startAt: targetItem.startAt || today,
+      endAt: targetItem.endAt || today,
+      content: targetItem.content || "",
+      fileName: targetItem.fileName || "",
     });
     setOpen(true);
   };
@@ -186,54 +193,127 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
     setForm((prev) => ({ ...prev, fileName: f.name }));
   };
 
-  const handleSubmit = () => {
+  // 등록/수정 시 API 호출, UI 로직은 그대로 유지
+  const handleSubmit = async () => {
     if (!form.title.trim()) return alert("제목을 입력하세요.");
     if (mode === "create") {
-      const newItem: NoticeItem = {
-        id: `n${Date.now()}`,
-        title: form.title,
-        type: form.type, // 여기서만 form.type 사용
-        createdAt: formatToDotDate(form.startAt),
-        startAt: form.startAt,
-        endAt: form.endAt,
-        content: form.content,
-        fileName: form.fileName,
-      };
-      setItems((prev) => [newItem, ...prev]);
-      setSelectedId(newItem.id);
-      setMode("view");
-      setOpen(false);
+      // 등록
+      try {
+        const res = await fetch("/app/api/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            store_id: store,
+            store_notice_event_type: form.type === "공지" ? false : true,
+            store_notice_event_title: form.title,
+            store_notice_event_contents: form.content,
+            store_notice_event_image_url: form.fileName,
+            store_notice_event_start_time: form.startAt,
+            store_notice_event_end_time: form.endAt,
+          }),
+        });
+        if (res.ok) {
+          setOpen(false);
+          setMode("view");
+          // 목록 새로고침
+          const refreshed = await fetch(`/app/api/posts/store/${store}`);
+          const data = await refreshed.json();
+          setItems(
+            data.map((item: any) => ({
+              id: item.store_notice_event_id?.toString() ?? "",
+              title: item.store_notice_event_title,
+              type: item.store_notice_event_type === false ? "공지" : "홍보",
+              createdAt:
+                item.store_notice_event_create_time
+                  ?.slice(0, 10)
+                  ?.replace(/-/g, ".") ?? "",
+              startAt: item.store_notice_event_start_time ?? "",
+              endAt: item.store_notice_event_end_time ?? "",
+              content: item.store_notice_event_contents ?? "",
+              fileName: item.store_notice_event_image_url ?? "",
+            }))
+          );
+        }
+      } catch (e) {}
     } else if (mode === "edit" && selected) {
-      setItems((prev) =>
-        prev.map((it) =>
-          it.id === selected.id
-            ? {
-                ...it,
-                title: form.title,
-                startAt: form.startAt,
-                endAt: form.endAt,
-                createdAt: formatToDotDate(form.startAt),
-                type: form.type, // 편집 시 태그도 반영
-                content: form.content,
-                fileName: form.fileName,
-              }
-            : it
-        )
-      );
-      setMode("view");
+      // 수정
+      try {
+        const res = await fetch(`/app/api/posts/${selected.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            store_notice_event_title: form.title,
+            store_notice_event_contents: form.content,
+            store_notice_event_image_url: form.fileName,
+            store_notice_event_start_time: form.startAt,
+            store_notice_event_end_time: form.endAt,
+            store_notice_event_type: form.type === "공지" ? false : true,
+          }),
+        });
+        if (res.ok) {
+          setMode("view");
+          // 목록 새로고침
+          const refreshed = await fetch(`/app/api/posts/store/${store}`);
+          const data = await refreshed.json();
+          setItems(
+            data.map((item: any) => ({
+              id: item.store_notice_event_id?.toString() ?? "",
+              title: item.store_notice_event_title,
+              type: item.store_notice_event_type === false ? "공지" : "홍보",
+              createdAt:
+                item.store_notice_event_create_time
+                  ?.slice(0, 10)
+                  ?.replace(/-/g, ".") ?? "",
+              startAt: item.store_notice_event_start_time ?? "",
+              endAt: item.store_notice_event_end_time ?? "",
+              content: item.store_notice_event_contents ?? "",
+              fileName: item.store_notice_event_image_url ?? "",
+            }))
+          );
+        }
+      } catch (e) {}
     }
   };
 
-  const handleDelete = () => {
+  // 삭제 시 API 호출, UI 로직은 그대로 유지
+  const handleDelete = async () => {
     if (!selected) return;
     if (!confirm("삭제하시겠습니까?")) return;
-    setItems((prev) => prev.filter((it) => it.id !== selected.id));
-    closeModal();
+    try {
+      const res = await fetch(`/app/api/posts/${selected.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        closeModal();
+        // 목록 새로고침
+        const refreshed = await fetch(`/app/api/posts/store/${store}`);
+        const data = await refreshed.json();
+        setItems(
+          data.map((item: any) => ({
+            id: item.store_notice_event_id?.toString() ?? "",
+            title: item.store_notice_event_title,
+            type: item.store_notice_event_type === false ? "공지" : "홍보",
+            createdAt:
+              item.store_notice_event_create_time?.slice(0, 10)?.replace(/-/g, ".") ?? "",
+            startAt: item.store_notice_event_start_time ?? "",
+            endAt: item.store_notice_event_end_time ?? "",
+            content: item.store_notice_event_contents ?? "",
+            fileName: item.store_notice_event_image_url ?? "",
+          }))
+        );
+      }
+    } catch (e) {}
   };
 
+  // 최종 return 블록
   return (
     <div className="space-y-3">
-      {/* 상단 바 */}
+      {/* 선택된 매장명 표시 */}
+      <div className="flex items-center gap-3">
+        <div className="text-lg font-semibold">
+          {storeName ? `선택된 지점: ${storeName}` : "지점이 선택되지 않았습니다."}
+        </div>
+      </div>
       <div className="flex items-center gap-3">
         <div className="ml-auto flex items-center gap-2">
           <Button
@@ -247,43 +327,44 @@ export default function NoticeSection({ storeName }: { storeName: string }) {
           </Button>
         </div>
       </div>
-
-      {/* 리스트 */}
-      <div className="overflow-hidden rounded-xl border bg-white">
-        <div className="grid grid-cols-[1fr_120px_120px]">
-          {["제목", "구분", "생성일"].map((h) => (
-            <div
-              key={h}
-              className="px-3 py-2 bg-slate-50 border-b text-sm font-medium"
+      {/* 리스트 또는 안내 메시지 */}
+      {sortedItems.length === 0 ? (
+        <div className="rounded-xl border bg-white p-6 text-center text-slate-600">
+          <div className="mb-3">해당 지점에 등록된 공지/홍보글이 없습니다.</div>
+          <Button className="rounded-xl" onClick={openCreate}>
+            글 작성하기
+          </Button>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border bg-white">
+          <div className="grid grid-cols-[1fr_120px_120px]">
+            {["제목", "구분", "생성일"].map((h) => (
+              <div
+                key={h}
+                className="px-3 py-2 bg-slate-50 border-b text-sm font-medium"
+              >
+                {h}
+              </div>
+            ))}
+          </div>
+          {sortedItems.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => openView(n.id)}
+              className="grid w-full grid-cols-[1fr_120px_120px] border-b text-left hover:bg-slate-50"
             >
-              {h}
-            </div>
+              <div className="px-3 py-2 text-sm truncate">{n.title}</div>
+              <div className="px-3 py-2 text-sm">{n.type}</div>
+              <div className="px-3 py-2 text-sm">{n.createdAt}</div>
+            </button>
           ))}
         </div>
-        {sortedItems.map((n) => (
-          <button
-            key={n.id}
-            onClick={() => openView(n.id)}
-            className="grid w-full grid-cols-[1fr_120px_120px] border-b text-left hover:bg-slate-50"
-          >
-            <div className="px-3 py-2 text-sm truncate">{n.title}</div>
-            <div className="px-3 py-2 text-sm">{n.type}</div>
-            <div className="px-3 py-2 text-sm">{n.createdAt}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* 모달 */}
+      )}
+      {/* 모달: 공지/홍보글 등록 및 수정 */}
       <Modal
         open={open}
         onClose={closeModal}
-        title={
-          mode === "create"
-            ? "새 공지 등록"
-            : mode === "edit"
-            ? "공지 수정"
-            : "공지 조회"
-        }
+        title={mode === "create" ? "공지/홍보글 등록" : "공지/홍보글 수정"}
       >
         <div className="rounded-xl border border-sky-300 bg-sky-100 p-4">
           <div className="grid gap-3">

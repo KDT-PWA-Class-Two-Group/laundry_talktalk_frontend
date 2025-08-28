@@ -10,7 +10,7 @@ export async function GET(
   try {
     // 백엔드에 userId 중복 확인 요청
     const backendRes = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/check-id/${userId}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/check-id/${userId}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },

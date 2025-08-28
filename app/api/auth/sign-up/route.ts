@@ -3,9 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
+  console.log(body);
+
   try {
     const backendRes = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/signup`, // ✅ 백엔드 회원가입 API
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/sign-up`, // ✅ 백엔드 회원가입 API
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
