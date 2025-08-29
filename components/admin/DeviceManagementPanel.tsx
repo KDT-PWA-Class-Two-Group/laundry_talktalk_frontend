@@ -1,223 +1,39 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
+import { formatNumber } from "./deviceUtils/formatNumber";
+import { Modal } from "./deviceUtils/modal";
+import { OptionPickerModal } from "./deviceUtils/optionPicker";
+import {
+  Device,
+  DeviceKind,
+  DeviceOptions,
+  Course,
+  AddOn,
+} from "@/types/admin";
 
-type DeviceKind = "세탁기" | "건조기" | "기타";
-interface Course {
-  id: string;
-  name: string;
-  durationMin?: number;
-  price: number;
-}
-interface AddOn {
-  id: string;
-  name: string;
-  price: number;
-}
-interface DeviceOptions {
-  courses: Course[];
-  addOns: AddOn[];
-}
-interface Device {
-  id: string;
-  name: string;
-  kind: DeviceKind;
-  options?: DeviceOptions;
-}
+// 숫자 포맷 함수는 deviceUtils/formatNumber.ts에서 관리
 
-const fmt = (n: number) => new Intl.NumberFormat("ko-KR").format(n);
-const uid = (p = "id") =>
-  `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-const delBtn =
-  "h-8 rounded-full px-3 text-xs bg-red-600 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500";
-
+// TPL 더미 데이터 삭제됨. 실제 데이터는 서버 또는 상위 컴포넌트에서 받아와야 함
 const TPL: Record<Exclude<DeviceKind, "기타">, DeviceOptions> = {
   세탁기: {
-    courses: [
-      { id: uid("c"), name: "표준세탁(60분)", durationMin: 60, price: 5000 },
-      { id: uid("c"), name: "이불 세탁 (80분)", durationMin: 80, price: 7000 },
-      { id: uid("c"), name: "울코스 (40분)", durationMin: 40, price: 5000 },
-    ],
-    addOns: [
-      { id: uid("a"), name: "섬유유연제", price: 1000 },
-      { id: uid("a"), name: "헹굼 추가", price: 500 },
-    ],
+    courses: [],
+    addOns: [],
   },
   건조기: {
-    courses: [
-      { id: uid("c"), name: "표준건조(60분)", durationMin: 60, price: 5000 },
-      { id: uid("c"), name: "이불 건조 (80분)", durationMin: 80, price: 7000 },
-      { id: uid("c"), name: "울코스 (40분)", durationMin: 40, price: 5000 },
-    ],
-    addOns: [{ id: uid("a"), name: "+10분 추가", price: 1000 }],
+    courses: [],
+    addOns: [],
   },
 };
 
-function Modal({
-  open,
-  title,
-  onClose,
-  children,
-  footer,
-}: {
-  open: boolean;
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-}) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 w-[min(880px,92vw)] rounded-2xl border bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h3 className="text-xl font-semibold">{title}</h3>
-          <button
-            aria-label="닫기"
-            className="rounded-md p-1 hover:bg-slate-100"
-            onClick={onClose}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="p-4">{children}</div>
-        {footer && <div className="border-t px-4 py-3">{footer}</div>}
-      </div>
-    </div>
-  );
-}
 
-function OptionPickerModal({
-  open,
-  kind,
-  initial,
-  onClose,
-  onDone,
-}: {
-  open: boolean;
-  kind: DeviceKind;
-  initial: DeviceOptions;
-  onClose: () => void;
-  onDone: (v: DeviceOptions) => void;
-}) {
-  const tpl =
-    kind === "기타"
-      ? { courses: [] as Course[], addOns: [] as AddOn[] }
-      : TPL[kind];
-  const [selC, setSelC] = useState<Set<string>>(
-    () => new Set(initial.courses.map((c) => c.id))
-  );
-  const [selA, setSelA] = useState<Set<string>>(
-    () => new Set(initial.addOns.map((a) => a.id))
-  );
-  useEffect(() => {
-    setSelC(new Set(initial.courses.map((c) => c.id)));
-    setSelA(new Set(initial.addOns.map((a) => a.id)));
-  }, [open, initial]);
 
-  const togg = (
-    set: React.Dispatch<React.SetStateAction<Set<string>>>,
-    id: string
-  ) =>
-    set((p) => {
-      const n = new Set(p);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
 
-  const done = () => {
-    onDone({
-      courses: tpl.courses.filter((c) => selC.has(c.id)),
-      addOns: tpl.addOns.filter((a) => selA.has(a.id)),
-    });
-    onClose();
-  };
 
-  return (
-    <Modal
-      open={open}
-      title="옵션 선택"
-      onClose={onClose}
-      footer={
-        <div className="flex justify-center">
-          <Button onClick={done} className="px-8 rounded-full">
-            완료
-          </Button>
-        </div>
-      }
-    >
-      <div className="grid gap-6">
-        <section>
-          <h4 className="mb-3 border-b pb-1 text-lg font-semibold">코스</h4>
-          <div className="space-y-3">
-            {tpl.courses.length === 0 && (
-              <p className="text-sm text-slate-500">선택할 코스가 없습니다.</p>
-            )}
-            {tpl.courses.map((c) => (
-              <label
-                key={c.id}
-                className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2"
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={selC.has(c.id)}
-                    onChange={() => togg(setSelC, c.id)}
-                  />
-                  <span className="text-sm">
-                    {c.name}
-                    {typeof c.durationMin === "number" && (
-                      <span className="text-slate-500">
-                        {" "}
-                        ({c.durationMin}분)
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <span className="text-sm font-medium">{fmt(c.price)}원</span>
-              </label>
-            ))}
-          </div>
-        </section>
 
-        <section>
-          <h4 className="mb-3 border-b pb-1 text-lg font-semibold">
-            추가 옵션
-          </h4>
-          <div className="space-y-3">
-            {tpl.addOns.length === 0 && (
-              <p className="text-sm text-slate-500">
-                선택할 추가 옵션이 없습니다.
-              </p>
-            )}
-            {tpl.addOns.map((a) => (
-              <label
-                key={a.id}
-                className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2"
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={selA.has(a.id)}
-                    onChange={() => togg(setSelA, a.id)}
-                  />
-                  <span className="text-sm">{a.name}</span>
-                </div>
-                <span className="text-sm font-medium">{fmt(a.price)}원</span>
-              </label>
-            ))}
-          </div>
-        </section>
-      </div>
-    </Modal>
-  );
-}
 
 function DeviceEditorModal({
   open,
@@ -249,7 +65,13 @@ function DeviceEditorModal({
   const save = () => {
     const nm = name.trim();
     if (!nm) return alert("기기명을 입력하세요.");
-    onSave({ id: initial?.id ?? uid("d"), name: nm, kind, options: opt });
+    // id 생성: 기존 id가 없으면 Date.now()와 Math.random()을 조합해 생성
+    const generatedId =
+      initial?.id ??
+      `device_${Date.now().toString(36)}_${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+    onSave({ id: generatedId, name: nm, kind, options: opt });
     onClose();
   };
 
@@ -312,13 +134,14 @@ function DeviceEditorModal({
         </div>
       </Modal>
 
-      <OptionPickerModal
-        open={pick}
-        kind={kind}
-        initial={opt}
-        onClose={() => setPick(false)}
-        onDone={(v) => setOpt(v)}
-      />
+       <OptionPickerModal
+         open={pick}
+         kind={kind}
+         initial={opt}
+         onClose={() => setPick(false)}
+         onDone={(v) => setOpt(v)}
+         tpl={TPL}
+       />
     </>
   );
 }
@@ -369,7 +192,7 @@ export default function DeviceManagementPanel() {
                 </div>
                 <Button
                   size="sm"
-                  className={delBtn}
+                  className="h-8 rounded-full px-3 text-xs bg-red-600 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500"
                   onClick={(e) => remove(d.id, e)}
                 >
                   삭제
@@ -405,7 +228,7 @@ export default function DeviceManagementPanel() {
                               )}
                             </span>
                             <span className="font-medium">
-                              {fmt(c.price)}원
+                              {formatNumber(c.price)}원
                             </span>
                           </div>
                         ))}
@@ -425,7 +248,7 @@ export default function DeviceManagementPanel() {
                           >
                             <span>{a.name}</span>
                             <span className="font-medium">
-                              {fmt(a.price)}원
+                              {formatNumber(a.price)}원
                             </span>
                           </div>
                         ))}
