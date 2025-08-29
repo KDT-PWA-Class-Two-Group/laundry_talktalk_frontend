@@ -5,7 +5,7 @@ import { Store } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import StoreSelect from "@/components/admin/StoreSelect";
 import NoticeSection from "@/components/admin/NoticeAndPromotion";
-import ReviewSection from "@/components/admin/Review Management";
+import ReviewSection from "@/components/admin/ReviewManagement";
 
 // 패널 컴포넌트(default export)
 import DeviceManagementPanel from "@/components/admin/DeviceManagementPanel";
