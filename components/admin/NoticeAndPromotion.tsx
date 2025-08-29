@@ -23,6 +23,7 @@ function Modal({
   children: React.ReactNode;
   title: string;
 }) {
+  // 모달이 열려있지 않으면 null 반환
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -70,34 +71,44 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
     : null;
 
   useEffect(() => {
+    // 오늘 날짜를 yyyy-mm-dd 형식으로 저장
     if (!storeIdString) return;
+    // 초기 공지 폼 객체 생성
     fetchStoreName(storeIdString).then(setCurrentStoreName);
   }, [storeIdString]);
 
+  // 공지 모드: 생성/수정/보기
   useEffect(() => {
     if (!storeIdString) return;
     fetchNoticeList(storeIdString)
+      // 공지 폼 상태
       .then(setNoticeList)
       .catch(() => setNoticeList([]));
   }, [storeIdString]);
+  // 선택된 공지 ID
 
+  // 정렬 방향
   const sortedNoticeList = useMemo(() => {
-    return [...noticeList].sort((a, b) => {
-      const aDate = a.createdAt.replaceAll(".", "");
-      const bDate = b.createdAt.replaceAll(".", "");
+    // 현재 매장명
+    return [...noticeList].sort((noticeA, noticeB) => {
+      const createdDateA = noticeA.createdAt.replaceAll(".", "");
+      const createdDateB = noticeB.createdAt.replaceAll(".", "");
       return isSortAscending
-        ? aDate.localeCompare(bDate)
-        : bDate.localeCompare(aDate);
+        ? createdDateA.localeCompare(createdDateB)
+        : createdDateB.localeCompare(createdDateA);
     });
+    // 선택된 공지 객체
   }, [noticeList, isSortAscending]);
 
   const openCreateNoticeModal = () => {
     setSelectedNoticeId(null);
+    // 매장명 가져오기
     setNoticeMode("create");
     setNoticeForm({ ...initialNoticeForm });
     setIsModalOpen(true);
     setTimeout(() => noticeTitleInputRef.current?.focus(), 0);
   };
+  // 공지 리스트 가져오기
 
   const openEditNoticeModal = (noticeId: string) => {
     const targetNotice = noticeList.find((notice) => notice.id === noticeId);
@@ -105,6 +116,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
     setSelectedNoticeId(noticeId);
     setNoticeMode("edit");
     setNoticeForm({
+      // 공지 리스트 정렬
       id: targetNotice.id,
       title: targetNotice.title,
       type: targetNotice.type,
@@ -115,6 +127,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
       fileName: targetNotice.fileName || "",
     });
     setIsModalOpen(true);
+    // 공지 생성 모달 열기
   };
 
   const closeNoticeModal = () => {
@@ -123,9 +136,11 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
   };
 
   const handleNoticeFormChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    // 공지 수정 모달 열기
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target as {
+    // 입력 이벤트에서 name, value 추출
+    const { name, value } = event.target as {
       name: keyof typeof noticeForm;
       value: string;
     };
@@ -133,19 +148,22 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
   };
 
   const handleFileUploadClick = () => noticeFileInputRef.current?.click();
-  const handleNoticeFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const fileObj = e.target.files?.[0];
+  const handleNoticeFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    // 파일 업로드 이벤트에서 파일 객체 추출
+    const fileObj = event.target.files?.[0];
     if (!fileObj) return;
     setNoticeForm((prev) => ({ ...prev, fileName: fileObj.name }));
   };
 
   // 등록/수정 분리
   const handleNoticeSubmit = async () => {
+    // 모달 닫기
     if (!noticeForm.title.trim()) return alert("제목을 입력하세요.");
     if (noticeMode === "create") {
       const result = await createNotice(storeIdString, noticeForm);
       if (result) {
         setIsModalOpen(false);
+        // 폼 입력값 변경 핸들러
         setNoticeMode("view");
         setNoticeList(result);
       } else {
@@ -156,7 +174,9 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
         storeIdString,
         selectedNotice.id,
         noticeForm
+        // 파일 업로드 버튼 클릭 핸들러
       );
+      // 파일 변경 핸들러
       if (result) {
         setNoticeMode("view");
         setNoticeList(result);
@@ -164,6 +184,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
     }
   };
 
+  // 공지 등록/수정 핸들러
   // 삭제 핸들러
   const handleNoticeDelete = async () => {
     if (!selectedNotice) return;
@@ -189,8 +210,9 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
       <div className="flex items-center gap-3">
         <div className="ml-auto flex items-center gap-2">
           <Button
+            // 공지 삭제 핸들러
             className="h-8 rounded-md px-3"
-            onClick={() => setIsSortAscending((p) => !p)}
+            onClick={() => setIsSortAscending((prevIsAscending) => !prevIsAscending)}
           >
             정렬
           </Button>
@@ -200,6 +222,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
         </div>
       </div>
       {/* 리스트 또는 안내 메시지 */}
+      // UI 렌더링
       {sortedNoticeList.length === 0 ? (
         <div className="rounded-xl border bg-white p-6 text-center text-slate-600">
           <div className="mb-3">해당 지점에 등록된 공지/홍보글이 없습니다.</div>
@@ -210,24 +233,24 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
       ) : (
         <div className="overflow-hidden rounded-xl border bg-white">
           <div className="grid grid-cols-[1fr_120px_120px]">
-            {["제목", "구분", "생성일"].map((h) => (
+            {['제목', '구분', '생성일'].map((headerLabel) => (
               <div
-                key={h}
+                key={headerLabel}
                 className="px-3 py-2 bg-slate-50 border-b text-sm font-medium"
               >
-                {h}
+                {headerLabel}
               </div>
             ))}
           </div>
-          {sortedNoticeList.map((n) => (
+          {sortedNoticeList.map((noticeItem) => (
             <button
-              key={n.id}
-              onClick={() => openEditNoticeModal(n.id)}
+              key={noticeItem.id}
+              onClick={() => openEditNoticeModal(noticeItem.id)}
               className="grid w-full grid-cols-[1fr_120px_120px] border-b text-left hover:bg-slate-50"
             >
-              <div className="px-3 py-2 text-sm truncate">{n.title}</div>
-              <div className="px-3 py-2 text-sm">{n.type}</div>
-              <div className="px-3 py-2 text-sm">{n.createdAt}</div>
+              <div className="px-3 py-2 text-sm truncate">{noticeItem.title}</div>
+              <div className="px-3 py-2 text-sm">{noticeItem.type}</div>
+              <div className="px-3 py-2 text-sm">{noticeItem.createdAt}</div>
             </button>
           ))}
         </div>

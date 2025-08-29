@@ -1,6 +1,9 @@
 import { NoticeItem } from "@/types/admin";
 import { convertApiNoticeToItem } from "./convertApiNoticeToItem";
 
+// 매장 ID로 매장 이름을 가져오는 함수
+// /api/stores에서 매장 목록을 받아와서 storeId와 일치하는 매장명 반환
+
 export async function fetchStoreName(storeIdString: string): Promise<string> {
   const res = await fetch("/api/stores");
   const storeDataArray = await res.json();
@@ -10,6 +13,8 @@ export async function fetchStoreName(storeIdString: string): Promise<string> {
   return foundStore && foundStore.store_name ? foundStore.store_name : "";
 }
 
+// 매장 ID로 해당 매장의 공지/홍보글 리스트를 가져오는 함수
+// API 응답을 NoticeItem 배열로 변환
 export async function fetchNoticeList(
   storeIdString: string
 ): Promise<NoticeItem[]> {
@@ -18,6 +23,8 @@ export async function fetchNoticeList(
   return noticeDataArray.map(convertApiNoticeToItem);
 }
 
+// 공지/홍보글을 새로 등록하는 함수
+// 등록 후 최신 리스트를 반환
 export async function createNotice(
   storeIdString: string,
   noticeForm: NoticeItem
@@ -41,6 +48,8 @@ export async function createNotice(
   return refreshedData.map(convertApiNoticeToItem);
 }
 
+// 공지/홍보글을 수정하는 함수
+// 수정 후 최신 리스트를 반환
 export async function updateNotice(
   storeIdString: string,
   noticeId: string,
@@ -64,6 +73,8 @@ export async function updateNotice(
   return refreshedData.map(convertApiNoticeToItem);
 }
 
+// 공지/홍보글을 삭제하는 함수
+// 삭제 후 최신 리스트를 반환
 export async function deleteNotice(
   storeIdString: string,
   noticeId: string
