@@ -1,30 +1,17 @@
 "use client";
-
+import { useMemo, useRef, useState, ChangeEvent, useEffect } from "react";
+import { getInitialNoticeForm } from "./NoticeFunctions/noticeFormUtils";
 import {
-  useMemo,
-  useRef,
-  useState,
-  ChangeEvent,
-  useCallback,
-  useEffect,
-} from "react";
+  fetchStoreName,
+  fetchNoticeList,
+  createNotice,
+  updateNotice,
+  deleteNotice,
+} from "./NoticeFunctions/noticeApi";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
+import { NoticeItem } from "@/types/admin";
 
-// 타입 정의
-type NoticeType = "공지" | "홍보";
-interface NoticeItem {
-  id: string;
-  title: string;
-  type: NoticeType;
-  createdAt: string; // YYYY.MM.DD
-  startAt?: string; // YYYY-MM-DD (input용)
-  endAt?: string; // YYYY-MM-DD (input용)
-  content?: string;
-  fileName?: string;
-}
-
-// 간단 모달
 function Modal({
   open,
   onClose,
@@ -58,52 +45,9 @@ function Modal({
 }
 
 export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
-  // Util: API 데이터 변환
-  function convertApiNoticeToItem(apiNotice: any): NoticeItem {
-    return {
-      id:
-        apiNotice.store_notice_event_id &&
-        apiNotice.store_notice_event_id.toString()
-          ? apiNotice.store_notice_event_id.toString()
-          : "",
-      title: apiNotice.store_notice_event_title
-        ? apiNotice.store_notice_event_title
-        : "",
-      type: apiNotice.store_notice_event_type === false ? "공지" : "홍보",
-      createdAt:
-        apiNotice.store_notice_event_create_time &&
-        apiNotice.store_notice_event_create_time.slice(0, 10)
-          ? apiNotice.store_notice_event_create_time
-              .slice(0, 10)
-              .replace(/-/g, ".")
-          : "",
-      startAt: apiNotice.store_notice_event_start_time
-        ? apiNotice.store_notice_event_start_time
-        : "",
-      endAt: apiNotice.store_notice_event_end_time
-        ? apiNotice.store_notice_event_end_time
-        : "",
-      content: apiNotice.store_notice_event_contents
-        ? apiNotice.store_notice_event_contents
-        : "",
-      fileName: apiNotice.store_notice_event_image_url
-        ? apiNotice.store_notice_event_image_url
-        : "",
-    };
-  }
-
   // 날짜 및 초기 폼
   const todayDateString = new Date().toISOString().slice(0, 10);
-  const initialNoticeForm: NoticeItem = {
-    id: "",
-    title: "",
-    type: "공지",
-    createdAt: todayDateString.replace(/-/g, "."),
-    startAt: todayDateString,
-    endAt: todayDateString,
-    content: "",
-    fileName: "",
-  };
+  const initialNoticeForm: NoticeItem = getInitialNoticeForm(todayDateString);
   // 상태 선언
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [noticeMode, setNoticeMode] = useState<"create" | "edit" | "view">(
@@ -125,37 +69,18 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
     ? noticeList.find((notice) => notice.id === selectedNoticeId)
     : null;
 
-  // 매장명 fetch
   useEffect(() => {
     if (!storeIdString) return;
-    fetch("/api/stores")
-      .then((res) => res.json())
-      .then((storeDataArray) => {
-        const foundStore = storeDataArray.find(
-          (storeObj: any) => storeObj.store_id?.toString() === storeIdString
-        );
-        setCurrentStoreName(
-          foundStore && foundStore.store_name ? foundStore.store_name : ""
-        );
-      });
+    fetchStoreName(storeIdString).then(setCurrentStoreName);
   }, [storeIdString]);
 
-  // 데이터 상태: API 연동
   useEffect(() => {
     if (!storeIdString) return;
-    async function fetchNoticeList() {
-      try {
-        const response = await fetch(`/app/api/posts/store/${storeIdString}`);
-        const noticeDataArray = await response.json();
-        setNoticeList(noticeDataArray.map(convertApiNoticeToItem));
-      } catch (e) {
-        setNoticeList([]);
-      }
-    }
-    fetchNoticeList();
+    fetchNoticeList(storeIdString)
+      .then(setNoticeList)
+      .catch(() => setNoticeList([]));
   }, [storeIdString]);
 
-  // 정렬된 리스트
   const sortedNoticeList = useMemo(() => {
     return [...noticeList].sort((a, b) => {
       const aDate = a.createdAt.replaceAll(".", "");
@@ -166,7 +91,6 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
     });
   }, [noticeList, isSortAscending]);
 
-  // 핸들러
   const openCreateNoticeModal = () => {
     setSelectedNoticeId(null);
     setNoticeMode("create");
@@ -219,55 +143,24 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
   const handleNoticeSubmit = async () => {
     if (!noticeForm.title.trim()) return alert("제목을 입력하세요.");
     if (noticeMode === "create") {
-      try {
-        const response = await fetch("/app/api/posts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            store_id: storeIdString,
-            store_notice_event_type: noticeForm.type === "공지" ? false : true,
-            store_notice_event_title: noticeForm.title,
-            store_notice_event_contents: noticeForm.content,
-            store_notice_event_image_url: noticeForm.fileName,
-            store_notice_event_start_time: noticeForm.startAt,
-            store_notice_event_end_time: noticeForm.endAt,
-          }),
-        });
-        if (response.ok) {
-          setIsModalOpen(false);
-          setNoticeMode("view");
-          const refreshed = await fetch(
-            `/app/api/posts/store/${storeIdString}`
-          );
-          const refreshedData = await refreshed.json();
-          setNoticeList(refreshedData.map(convertApiNoticeToItem));
-        }
-      } catch (e) {
+      const result = await createNotice(storeIdString, noticeForm);
+      if (result) {
+        setIsModalOpen(false);
+        setNoticeMode("view");
+        setNoticeList(result);
+      } else {
         setNoticeList([]);
       }
     } else if (selectedNotice && selectedNotice.id) {
-      try {
-        const response = await fetch(`/app/api/posts/${selectedNotice.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            store_notice_event_title: noticeForm.title,
-            store_notice_event_contents: noticeForm.content,
-            store_notice_event_image_url: noticeForm.fileName,
-            store_notice_event_start_time: noticeForm.startAt,
-            store_notice_event_end_time: noticeForm.endAt,
-            store_notice_event_type: noticeForm.type === "공지" ? false : true,
-          }),
-        });
-        if (response.ok) {
-          setNoticeMode("view");
-          const refreshed = await fetch(
-            `/app/api/posts/store/${storeIdString}`
-          );
-          const refreshedData = await refreshed.json();
-          setNoticeList(refreshedData.map(convertApiNoticeToItem));
-        }
-      } catch (e) {}
+      const result = await updateNotice(
+        storeIdString,
+        selectedNotice.id,
+        noticeForm
+      );
+      if (result) {
+        setNoticeMode("view");
+        setNoticeList(result);
+      }
     }
   };
 
@@ -275,17 +168,11 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
   const handleNoticeDelete = async () => {
     if (!selectedNotice) return;
     if (!confirm("삭제하시겠습니까?")) return;
-    try {
-      const response = await fetch(`/app/api/posts/${selectedNotice.id}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        closeNoticeModal();
-        const refreshed = await fetch(`/app/api/posts/store/${storeIdString}`);
-        const refreshedData = await refreshed.json();
-        setNoticeList(refreshedData.map(convertApiNoticeToItem));
-      }
-    } catch (e) {}
+    const result = await deleteNotice(storeIdString, selectedNotice.id);
+    if (result) {
+      closeNoticeModal();
+      setNoticeList(result);
+    }
   };
 
   // 최종 return 블록
@@ -374,7 +261,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId?: string }) {
               <div className="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-2">
                 <div className="text-base font-semibold">태그 :</div>
                 <div className="inline-flex overflow-hidden rounded-xl border">
-                  {(["공지", "홍보"] as NoticeType[]).map((t) => (
+                  {(["공지", "홍보"] as Array<NoticeItem["type"]>).map((t) => (
                     <button
                       key={t}
                       type="button"
