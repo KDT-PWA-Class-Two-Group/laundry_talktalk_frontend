@@ -5,21 +5,11 @@ import { StoreSelectProps } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import RegionSelect from "@/components/admin/RegionSelect";
 
-export default function StoreSelect({
-  value,
-  stores,
-  onChange,
-}: StoreSelectProps) {
+export default function StoreSelect({ value, stores, onChange }: StoreSelectProps) {
   const [open, setOpen] = useState(false);
-
-  // 매장 목록에서 첫 번째 매장 기준으로 지역 정보 추출
-  const [region, setRegion] = useState<{ city: string; districts: string[] }>(
-    () => {
-      const address = stores[0]?.address || "";
-      const [city = "", district = ""] = address.split(" ");
-      return { city, districts: [district] };
-    }
-  );
+  // 선택된 매장명 상태
+  const selectedStoreName = stores.find((s) => s.id === value)?.name || "";
+  const [storeName, setStoreName] = useState<string>(selectedStoreName);
 
   return (
     <div className="relative ml-auto">
@@ -30,7 +20,7 @@ export default function StoreSelect({
         aria-haspopup="dialog"
         className="whitespace-nowrap"
       >
-        매장 선택: {region.city} {region.districts[0]}
+        매장 선택: {storeName}
         <svg
           className="ml-1"
           width="14"
@@ -44,11 +34,12 @@ export default function StoreSelect({
 
       {open && (
         <RegionSelect
-          value={region}
+          value={{ store: storeName }}
           onClose={() => setOpen(false)}
-          onApply={(newRegion) => {
-            setRegion(newRegion);
-            onChange(value); // 데모: 항상 동일 매장 id 유지
+          onApply={({ store }) => {
+            setStoreName(store);
+            const found = stores.find((s) => s.name === store);
+            if (found) onChange(found.id);
             setOpen(false);
           }}
         />

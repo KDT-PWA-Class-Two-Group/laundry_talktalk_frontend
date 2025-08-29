@@ -19,3 +19,9 @@ export interface StoreSelectProps {
   stores: Store[];
   onChange: (id: string) => void;
 }
+
+export type RegionSelectProps = {
+  value: { store: string };
+  onClose: () => void;
+  onApply: (v: { store: string }) => void;
+};
