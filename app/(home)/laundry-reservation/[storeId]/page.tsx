@@ -9,7 +9,8 @@ import LaundryReservationDetail from "@/components/customComponents/laundry-rese
 export default async function LaundryReservationDetailPage({
   params,
 }: {
-  params: { storeId: string };
+  params: Promise<{ storeId: string }>;
 }) {
-  return <LaundryReservationDetail storeId={params.storeId} />;
+  const { storeId } = await params;
+  return <LaundryReservationDetail storeId={storeId} />;
 }

@@ -103,7 +103,7 @@ export default function NoticeAndPromotion({ storeId }: { storeId: string }) {
   const startRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [_pendingPicker, setPendingPicker] = useState<PendingPikcer>(null);
+  const [, setPendingPicker] = useState<PendingPikcer>(null);
   // const store = storeId || "";
 
   // 선택된 아이템

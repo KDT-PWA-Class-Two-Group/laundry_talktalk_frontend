@@ -139,7 +139,7 @@ export default function UsageHistoryPage() {
         }
 
         const mapped = (data as ApiUsageItem[]).map((item) => ({
-          id: item.id,
+          id: Number(item.id) || 0, // string을 number로 변환
           storeName: item.store?.store_name || "알 수 없음",
           status:
             item.status ? item.status
@@ -151,7 +151,7 @@ export default function UsageHistoryPage() {
           code: item.code || "",
           price: item.price || "",
           date: item.reservation_create_time,
-          // ...필요한 필드 추가
+          time: item.reservation_create_time || "", // time 필드 추가 (reservation_create_time 사용)
         }));
         setUsageData(mapped);
       } catch (error) {

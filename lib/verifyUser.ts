@@ -1,32 +1,42 @@
-// 사용자 정보 타입 정의
-export interface VerifiedUser {
-  user_id: string;
-  email: string;
-  isAuthenticated: boolean;
-}
+import { VerifiedUser } from "@/types/lib";
+import { cookies } from "next/headers";
 
 /**
  * 서버 컴포넌트에서 사용자 인증 정보를 가져오는 함수
- * HttpOnly 쿠키가 자동으로 포함되어 백엔드에서 사용자 정보를 검증
+ * BFF 패턴: 서버 컴포넌트 → API Route Handler → 백엔드
  */
 export async function verifyUser(): Promise<VerifiedUser | null> {
   try {
-    // verifyUser API 엔드포인트 호출 (쿠키 자동 포함)
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/auth/verify-user`, {
+    // 서버 컴포넌트에서는 쿠키를 명시적으로 전달해야 함
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
+
+    console.log("🔍 verifyUser 함수 실행");
+    console.log("🔍 쿠키 헤더:", cookieHeader ? "존재함" : "없음");
+
+    // API Route Handler로 요청 (쿠키 포함)
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/auth/verify-user`, {
       method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Cookie": cookieHeader, // 서버에서 API Route로 쿠키 전달
+      },
       cache: "no-store", // 항상 최신 인증 상태 확인
     });
 
-    if (!res.ok) {
-      // 인증 실패 시 null 반환
+    console.log("🔍 API Route 응답 상태:", response.status);
+
+    if (!response.ok) {
+      console.log("❌ 인증 실패:", response.status);
       return null;
     }
 
-    const userData: VerifiedUser = await res.json();
+    const userData: VerifiedUser = await response.json();
+    console.log("✅ 인증 성공:", userData);
     return userData;
-
   } catch (error) {
-    console.error('verifyUser 함수 오류:', error);
+    console.error("❌ verifyUser 함수 오류:", error);
     return null;
   }
 }
@@ -61,7 +71,7 @@ export async function isUserAuthenticated(): Promise<boolean> {
  */
 export async function verifyUserClient(): Promise<VerifiedUser | null> {
   try {
-    const res = await fetch('/api/auth/verify-user', {
+    const res = await fetch("/api/auth/verify-user", {
       method: "GET",
       cache: "no-store",
     });
@@ -72,9 +82,8 @@ export async function verifyUserClient(): Promise<VerifiedUser | null> {
 
     const userData: VerifiedUser = await res.json();
     return userData;
-
   } catch (error) {
-    console.error('verifyUserClient 함수 오류:', error);
+    console.error("verifyUserClient 함수 오류:", error);
     return null;
   }
 }

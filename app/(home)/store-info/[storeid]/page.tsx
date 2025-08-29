@@ -3,13 +3,14 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 // 서버컴포넌트: params로 storeId 받음
-export default function StorePage({ params }: { params: { storeid: string } }) {
+export default async function StorePage({ params }: { params: Promise<{ storeid: string }> }) {
+  const { storeid } = await params;
   // mock 매장 데이터
   const store = {
-    id: params.storeid,
-    name: `세탁소 ${params.storeid}`,
-    phone: `010-1234-56${String(params.storeid).padStart(2, "0")}`,
-    address: `서울시 강남구 테헤란로 ${10 + Number(params.storeid)}길`,
+    id: storeid,
+    name: `세탁소 ${storeid}`,
+    phone: `010-1234-56${String(storeid).padStart(2, "0")}`,
+    address: `서울시 강남구 테헤란로 ${10 + Number(storeid)}길`,
     rating: (Math.random() * 2 + 3).toFixed(1),
     image: "/images/store.jpg",
   };

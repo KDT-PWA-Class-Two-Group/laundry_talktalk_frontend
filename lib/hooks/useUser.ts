@@ -1,6 +1,7 @@
 'use client';
 
-import { verifyUserClient, type VerifiedUser } from '@/lib/verifyUser';
+import { verifyUserClient } from '@/lib/verifyUser';
+import { VerifiedUser } from '@/types/lib';
 import { useEffect, useState } from 'react';
 
 /**

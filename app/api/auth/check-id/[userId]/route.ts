@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 // GET /api/auth/check-id/{userId}
 export async function GET(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
-  const { userId } = params;
+  const { userId } = await params;
 
   try {
     // 백엔드에 userId 중복 확인 요청

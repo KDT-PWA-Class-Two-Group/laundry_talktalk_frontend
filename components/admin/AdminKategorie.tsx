@@ -27,7 +27,7 @@ export default function AdminShell() {
         const res = await fetch("/api/stores");
         const data = await res.json();
         // store_id, store_name을 id, name으로 변환
-        const mapped = data.map((s: any) => ({
+        const mapped = data.map((s: { store_id: string; store_name: string; store_address: string }) => ({
           id: s.store_id,
           name: s.store_name,
           address: s.store_address,
@@ -36,12 +36,12 @@ export default function AdminShell() {
         if (mapped.length > 0 && !selectedStoreId) {
           setSelectedStoreId(mapped[0].id);
         }
-      } catch (e) {
+      } catch {
         setStores([]);
       }
     }
     fetchStores();
-  }, []);
+  }, [selectedStoreId]);
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
@@ -132,4 +132,3 @@ export default function AdminShell() {
     </div>
   );
 }
-7;
