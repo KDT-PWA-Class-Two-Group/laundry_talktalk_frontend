@@ -25,7 +25,7 @@ export default function StoreSelect({
     <div className="relative ml-auto">
       <Button
         variant="outline"
-        onClick={() => setOpen(open => !open)}
+        onClick={() => setOpen((open) => !open)}
         aria-expanded={open}
         aria-haspopup="dialog"
         className="whitespace-nowrap"

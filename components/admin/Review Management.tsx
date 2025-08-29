@@ -1,6 +1,17 @@
 // components/admin/review/ReviewSection.tsx
 "use client";
 
+// 정렬 관련 함수들을 컴포넌트 바깥으로 이동
+const toTime = (dateString: string) => {
+  const [year, month, day] = dateString.split(".").map(Number);
+  return new Date(year, month - 1, day).getTime();
+};
+const byNewest = (nextReview: ReviewRow, prevReview: ReviewRow) =>
+  toTime(prevReview.createdAt) - toTime(nextReview.createdAt);
+const byRating = (nextReview: ReviewRow, prevReview: ReviewRow) =>
+  prevReview.rating - nextReview.rating;
+const toInt = (hasComment: boolean) => (hasComment ? 1 : 0);
+
 import { useMemo, useState } from "react";
 // shadcn/ui
 import { Button } from "@/components/ui/button";
@@ -60,46 +71,36 @@ export default function ReviewSection({
       },
     ]
   );
-
   const [sortKey, setSortKey] = useState<SortKey>("date");
 
   const sortedRows = useMemo(() => {
     const copy = [...rows];
-    const toTime = (s: string) => {
-      const [y, m, d] = s.split(".").map((t) => parseInt(t, 10));
-      return new Date(y, m - 1, d).getTime();
-    };
-    const byNewest = (a: ReviewRow, b: ReviewRow) =>
-      toTime(b.createdAt) - toTime(a.createdAt);
-    const byRating = (a: ReviewRow, b: ReviewRow) => b.rating - a.rating;
-    const toInt = (v: boolean) => (v ? 1 : 0);
-
     switch (sortKey) {
       case "rating":
-        copy.sort((a, b) => byRating(a, b) || byNewest(a, b));
-        break;
+        return copy.sort(
+          (reviewA, reviewB) =>
+            byRating(reviewA, reviewB) || byNewest(reviewA, reviewB)
+        );
       case "commentAsc":
-        copy.sort(
-          (a, b) =>
-            toInt(a.hasComment) - toInt(b.hasComment) ||
-            byNewest(a, b) ||
-            byRating(a, b)
+        return copy.sort(
+          (reviewA, reviewB) =>
+            toInt(reviewA.hasComment) - toInt(reviewB.hasComment) ||
+            byNewest(reviewA, reviewB) ||
+            byRating(reviewA, reviewB)
         );
-        break;
       case "commentDesc":
-        copy.sort(
-          (a, b) =>
-            toInt(b.hasComment) - toInt(a.hasComment) ||
-            byNewest(a, b) ||
-            byRating(a, b)
+        return copy.sort(
+          (reviewA, reviewB) =>
+            toInt(reviewB.hasComment) - toInt(reviewA.hasComment) ||
+            byNewest(reviewA, reviewB) ||
+            byRating(reviewA, reviewB)
         );
-        break;
-      case "date":
       default:
-        copy.sort((a, b) => byNewest(a, b) || byRating(a, b));
-        break;
+        return copy.sort(
+          (reviewA, reviewB) =>
+            byNewest(reviewA, reviewB) || byRating(reviewA, reviewB)
+        );
     }
-    return copy;
   }, [rows, sortKey]);
 
   return (
@@ -107,40 +108,40 @@ export default function ReviewSection({
       <h2 className="mb-4 text-lg font-semibold">리뷰관리 · {storeName}</h2>
 
       <div className="mb-2 flex items-center justify-end">
-        <SortMenu value={sortKey} onChange={setSortKey} />
+  <SortMenu sortKey={sortKey} onChangeSortKey={setSortKey} />
       </div>
 
       <div className="space-y-5">
-        {sortedRows.map((r) => (
+        {sortedRows.map((review) => (
           <ReviewCard
-            key={r.id}
-            row={r}
-            onChangeRating={(val) =>
-              setRows((prev) =>
-                prev.map((x) => (x.id === r.id ? { ...x, rating: val } : x))
+            key={review.id}
+            review={review}
+            onChangeRating={(newRating) =>
+              setRows((prevRows) =>
+                prevRows.map((reviewRow) => (reviewRow.id === review.id ? { ...reviewRow, rating: newRating } : reviewRow))
               )
             }
             onDeleteReview={() =>
-              setRows((prev) => prev.filter((x) => x.id !== r.id))
+              setRows((prevRows) => prevRows.filter((reviewRow) => reviewRow.id !== review.id))
             }
-            onCreateComment={(text) =>
-              setRows((prev) =>
-                prev.map((x) =>
-                  x.id === r.id ? { ...x, hasComment: true, comment: text } : x
+            onCreateComment={(commentText) =>
+              setRows((prevRows) =>
+                prevRows.map((reviewRow) =>
+                  reviewRow.id === review.id ? { ...reviewRow, hasComment: true, comment: commentText } : reviewRow
                 )
               )
             }
-            onUpdateComment={(text) =>
-              setRows((prev) =>
-                prev.map((x) => (x.id === r.id ? { ...x, comment: text } : x))
+            onUpdateComment={(commentText) =>
+              setRows((prevRows) =>
+                prevRows.map((reviewRow) => (reviewRow.id === review.id ? { ...reviewRow, comment: commentText } : reviewRow))
               )
             }
             onDeleteComment={() =>
-              setRows((prev) =>
-                prev.map((x) =>
-                  x.id === r.id
-                    ? { ...x, hasComment: false, comment: undefined }
-                    : x
+              setRows((prevRows) =>
+                prevRows.map((reviewRow) =>
+                  reviewRow.id === review.id
+                    ? { ...reviewRow, hasComment: false, comment: undefined }
+                    : reviewRow
                 )
               )
             }
@@ -151,20 +152,20 @@ export default function ReviewSection({
   );
 }
 
-/* ------------------- Sort Menu (shadcn) ------------------- */
+/* ------------------- 정렬 메뉴 (shadcn) ------------------- */
 function SortMenu({
-  value,
-  onChange,
+  sortKey,
+  onChangeSortKey,
 }: {
-  value: SortKey;
-  onChange: (v: SortKey) => void;
+  sortKey: SortKey;
+  onChangeSortKey: (newSortKey: SortKey) => void;
 }) {
-  const label =
-    value === "rating"
+  const sortLabel =
+    sortKey === "rating"
       ? "별점순"
-      : value === "date"
+      : sortKey === "date"
       ? "등록순"
-      : value === "commentAsc"
+      : sortKey === "commentAsc"
       ? "댓글 미작성"
       : "댓글 작성";
 
@@ -172,7 +173,7 @@ function SortMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="h-8 px-3 text-sm">
-          정렬: {label}
+          정렬: {sortLabel}
           <svg
             className="ml-1"
             width="14"
@@ -186,8 +187,8 @@ function SortMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 bg-white z-50">
         <DropdownMenuRadioGroup
-          value={value}
-          onValueChange={(v) => onChange(v as SortKey)}
+          value={sortKey}
+          onValueChange={(newValue) => onChangeSortKey(newValue as SortKey)}
         >
           <DropdownMenuRadioItem value="date">등록순</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="rating">별점순</DropdownMenuRadioItem>
@@ -203,52 +204,52 @@ function SortMenu({
   );
 }
 
-/* ------------------- Review Card ------------------- */
+/* ------------------- 리뷰 카드 ------------------- */
 function ReviewCard({
-  row,
+  review,
   onChangeRating,
   onDeleteReview,
   onCreateComment,
   onUpdateComment,
   onDeleteComment,
 }: {
-  row: ReviewRow;
-  onChangeRating: (v: number) => void; // 0.5 step
+  review: ReviewRow;
+  onChangeRating: (newRating: number) => void; // 0.5 step
   onDeleteReview: () => void;
-  onCreateComment: (text: string) => void;
-  onUpdateComment: (text: string) => void;
+  onCreateComment: (newCommentText: string) => void;
+  onUpdateComment: (newCommentText: string) => void;
   onDeleteComment: () => void;
 }) {
-  const [commentText, setCommentText] = useState(row.comment ?? "");
-  const [editing, setEditing] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [commentText, setCommentText] = useState(review.comment ?? "");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="rounded border-2 border-sky-700/60 bg-sky-100 p-2">
-      {/* 헤더 */}
+      {/* 헤더 영역 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* ✅ 반개(0.5) 단위 편집 가능한 별점 */}
-          <EditableStarRating value={row.rating} onChange={onChangeRating} />
+          {/* ✅ 반개(0.5) 단위로 편집 가능한 별점 */}
+          <EditableStarRating value={review.rating} onChange={onChangeRating} />
           <div className="font-semibold text-slate-800">
-            {row.rating.toFixed(1)} <span className="ml-1">{row.author}</span>
+            {review.rating.toFixed(1)} <span className="ml-1">{review.author}</span>
           </div>
-          <div className="text-xs text-slate-700">{row.createdAt}</div>
+          <div className="text-xs text-slate-700">{review.createdAt}</div>
           <div
             className={`text-xs ${
-              row.hasComment ? "text-sky-700" : "text-red-600"
+              review.hasComment ? "text-sky-700" : "text-red-600"
             }`}
           >
-            {row.hasComment ? "댓글 작성" : "댓글 미작성"}
+            {review.hasComment ? "댓글 작성" : "댓글 미작성"}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <BlueButton
             onClick={() => {
-              if (!open && row.hasComment) setCommentText(row.comment ?? "");
-              setOpen((v) => !v);
-              setEditing(false);
+              if (!isOpen && review.hasComment) setCommentText(review.comment ?? "");
+              setIsOpen((prevIsOpen) => !prevIsOpen);
+              setIsEditing(false);
             }}
           >
             댓글
@@ -257,15 +258,15 @@ function ReviewCard({
         </div>
       </div>
 
-      {/* 본문 */}
+      {/* 리뷰 본문 */}
       <div className="mt-2 rounded border-2 border-slate-700/60 bg-white px-4 py-8 text-center text-lg text-slate-900">
-        {row.content}
+        {review.content}
       </div>
 
-      {/* 댓글 영역 */}
-      {open && (
+      {/* 댓글 입력/수정 영역 */}
+  {isOpen && (
         <div className="mx-6 mt-4 rounded border-2 border-sky-700/60 bg-sky-50 p-4">
-          {!row.hasComment && !editing && (
+          {!review.hasComment && !isEditing && (
             <div className="flex items-center gap-3">
               <input
                 value={commentText}
@@ -278,7 +279,7 @@ function ReviewCard({
                   const text = commentText.trim();
                   if (!text) return;
                   onCreateComment(text);
-                  setEditing(false);
+                  setIsEditing(false);
                 }}
                 disabled={!commentText.trim()}
               >
@@ -288,16 +289,16 @@ function ReviewCard({
             </div>
           )}
 
-          {row.hasComment && !editing && (
+          {review.hasComment && !isEditing && (
             <div className="flex items-start gap-3">
               <div className="flex-1 rounded border-2 border-slate-700/50 bg-white px-4 py-6 text-center text-base text-slate-900">
-                {row.comment}
+                {review.comment}
               </div>
               <div className="flex flex-col gap-2">
                 <BlueButton
                   onClick={() => {
-                    setCommentText(row.comment ?? "");
-                    setEditing(true);
+                    setCommentText(review.comment ?? "");
+                    setIsEditing(true);
                   }}
                 >
                   수정
@@ -307,7 +308,7 @@ function ReviewCard({
             </div>
           )}
 
-          {row.hasComment && editing && (
+          {review.hasComment && isEditing && (
             <div className="flex items-center gap-3">
               <input
                 value={commentText}
@@ -320,7 +321,7 @@ function ReviewCard({
                   const text = commentText.trim();
                   if (!text) return;
                   onUpdateComment(text);
-                  setEditing(false);
+                  setIsEditing(false);
                 }}
                 disabled={!commentText.trim()}
               >
@@ -328,8 +329,8 @@ function ReviewCard({
               </BlueButton>
               <BlueButton
                 onClick={() => {
-                  setEditing(false);
-                  setCommentText(row.comment ?? "");
+                  setIsEditing(false);
+                  setCommentText(review.comment ?? "");
                 }}
               >
                 취소
@@ -342,11 +343,11 @@ function ReviewCard({
   );
 }
 
-/* ------------------- Editable Star Rating (0.5 step) ------------------- */
+/* ------------------- 편집 가능한 별점 (0.5 단위) ------------------- */
 /**
- * - 마우스 이동으로 반개/한개 단위 미리보기
- * - 클릭 시 0.5 단위로 onChange
- * - 표시는 overlay 기법: 회색 별 위에 빨간 별을 비율만큼 덮어 그림
+ * - 마우스 이동 시 반개/한개 단위 미리보기
+ * - 클릭 시 0.5 단위로 onChange 호출
+ * - 별 이미지는 overlay 기법(회색 별 위에 빨간 별을 비율만큼 덮어 그림)
  */
 function EditableStarRating({
   value,
@@ -359,7 +360,7 @@ function EditableStarRating({
 }) {
   const [hoverVal, setHoverVal] = useState<number | null>(null);
 
-  // 별 하나 영역에서 마우스 위치를 0.5/1.0으로 스냅
+  // 별 하나 영역에서 마우스 위치를 0.5/1.0 단위로 스냅
   const pickFraction = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>,
     base: number
@@ -432,7 +433,7 @@ function StarSvg({ className = "" }: { className?: string }) {
   );
 }
 
-/* ------------------- Small UI bits ------------------- */
+/* ------------------- UI 요소 ------------------- */
 function BlueButton({
   className = "",
   ...rest
