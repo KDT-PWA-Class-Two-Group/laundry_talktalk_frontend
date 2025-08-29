@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 type DeviceKind = "세탁기" | "건조기" | "기타";
 type Target = Exclude<DeviceKind, "기타">;
@@ -96,8 +96,14 @@ function AddOptionModal({
 
   const save = () => {
     const nm = name.trim();
-    if (!nm) return alert("옵션명을 입력하세요.");
-    if (sel.size === 0) return alert("적용 가능한 기기를 1개 이상 선택하세요.");
+    if (!nm) {
+      alert("옵션명을 입력하세요.");
+      return;
+    }
+    if (sel.size === 0) {
+      alert("적용 가능한 기기를 1개 이상 선택하세요.");
+      return;
+    }
     const p = typeof price === "number" ? Math.max(0, Math.floor(price)) : 0;
     const courses: Course[] = [],
       addOns: AddOn[] = [];

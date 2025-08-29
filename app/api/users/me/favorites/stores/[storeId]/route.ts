@@ -9,10 +9,10 @@ const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // ★ 실제 백�
 // DELETE 요청 처리: 특정 즐겨찾기 매장을 백엔드로부터 제거합니다.
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } } // URL 경로에서 'id' 매개변수를 받습니다.
+  { params }: { params: Promise<{ id: string }> } // URL 경로에서 'id' 매개변수를 받습니다.
 ) {
   try {
-    const { id } = params; // 삭제할 즐겨찾기 매장의 ID
+    const { id } = await params; // 삭제할 즐겨찾기 매장의 ID
 
     // 백엔드 서버의 즐겨찾기 제거 API로 DELETE 요청을 보냅니다.
     const backendResponse = await fetch(

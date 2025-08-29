@@ -4,9 +4,10 @@ import ResetPwForm from "@/components/customComponents/auth/resetpw/ResetPwForm"
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }) {
-  const token = searchParams?.token || "";
+  const params = await searchParams;
+  const token = params?.token || "";
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">

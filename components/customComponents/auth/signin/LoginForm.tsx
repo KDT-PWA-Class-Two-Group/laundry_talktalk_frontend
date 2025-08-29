@@ -94,7 +94,7 @@ export default function LoginForm() {
         setError("로그인 응답 데이터가 올바르지 않습니다.");
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("로그인 오류:", err);
       setError("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {

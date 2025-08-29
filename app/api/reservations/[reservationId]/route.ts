@@ -9,11 +9,11 @@ import { NextResponse } from "next/server";
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { reservationId: string } }
+  { params }: { params: Promise<{ reservationId: string }> }
 ) {
+  const { reservationId } = await params;
+  
   try {
-    const { reservationId } = params;
-
     // TODO:
     // 1. 사용자 인증 정보를 확인하여 현재 로그인된 사용자 ID를 가져오세요.
     // const userId = 'current-authenticated-user-id';
@@ -51,7 +51,7 @@ export async function DELETE(
     );
   } catch (error) {
     console.error(
-      `예약 취소 중 서버 오류 발생 (ID: ${params.reservationId}):`,
+      `예약 취소 중 서버 오류 발생 (ID: ${reservationId}):`,
       error
     );
     return NextResponse.json(
