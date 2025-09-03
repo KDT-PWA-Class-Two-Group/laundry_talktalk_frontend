@@ -3,9 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
+  console.log(body);
+
   try {
     const backendRes = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/signup`, // ✅ 백엔드 회원가입 API
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/sign-up`, // ✅ 백엔드 회원가입 API
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -22,9 +24,10 @@ export async function POST(req: NextRequest) {
       { ok: backendRes.ok, data, message: data?.message },
       { status: backendRes.status }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Sign-up proxy error";
     return NextResponse.json(
-      { ok: false, message: err.message || "Sign-up proxy error" },
+      { ok: false, message: errorMessage },
       { status: 500 }
     );
   }

@@ -1,5 +1,11 @@
+import AuthPageTitle from "@/components/customComponents/auth/common/auth-page-title";
 import FindIdForm from "@/components/customComponents/auth/findid/FindIdForm";
 
 export default function FindIdPage() {
-  return <FindIdForm />;
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
+      <AuthPageTitle>아이디 찾기</AuthPageTitle>
+      <FindIdForm />
+    </div>
+  );
 }

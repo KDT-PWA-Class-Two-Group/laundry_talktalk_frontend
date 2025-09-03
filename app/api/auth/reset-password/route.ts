@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const backendRes = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/reset-password`, // ✅ 백엔드 비번 재설정 API
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-password`, // ✅ 백엔드 비번 재설정 API
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -22,9 +22,10 @@ export async function POST(req: NextRequest) {
       { ok: backendRes.ok, data, message: data?.message },
       { status: backendRes.status }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Reset-password proxy error";
     return NextResponse.json(
-      { ok: false, message: err.message || "Reset-password proxy error" },
+      { ok: false, message: errorMessage },
       { status: 500 }
     );
   }

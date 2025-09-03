@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const backendRes = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/find-password`, // 🔹 백엔드 API 호출
+      `${process.env.NEXT_PUBLIC_API_URL}/api/auth/password/reset-request`, // 🔹 백엔드 API 호출
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -14,17 +14,16 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    const data = await backendRes.json().catch(() => ({
-      message: "백엔드 응답 파싱 실패",
-    }));
+    const data = await backendRes.json();
 
     return NextResponse.json(
       { ok: backendRes.ok, data, message: data?.message },
       { status: backendRes.status }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Find-password proxy error";
     return NextResponse.json(
-      { ok: false, message: err.message || "Find-password proxy error" },
+      { ok: false, message: errorMessage },
       { status: 500 }
     );
   }

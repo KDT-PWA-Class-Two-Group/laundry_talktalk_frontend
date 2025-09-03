@@ -119,14 +119,41 @@ export default function UsageHistoryPage() {
 
   // 1. 페이지 로드 시 이용 내역을 가져옵니다.
   useEffect(() => {
-    const fetchUsageHistory = async () => {
+  const fetchUsageHistory = async () => {
       setIsLoading(true);
       try {
         const response = await fetch("/api/mypage/usage-history");
-        if (!response.ok)
-          throw new Error("이용 내역을 불러오는 데 실패했습니다.");
-        const data: UsageItem[] = await response.json();
-        setUsageData(data);
+        if (!response.ok) throw new Error("이용 내역을 불러오는 데 실패했습니다.");
+        const data = await response.json();
+        // console.log("Fetched usage history data:", data);  // 디버그용 로그 출력
+        // 여기서 매핑
+        interface ApiUsageItem {
+          id: string;
+          store?: { store_name?: string };
+          status?: UsageItem["status"];
+          reservation_cancel?: boolean;
+          reservation_create_time: string;
+          duration?: string;
+          code?: string;
+          price?: string;
+        }
+
+        const mapped = (data as ApiUsageItem[]).map((item) => ({
+          id: Number(item.id) || 0, // string을 number로 변환
+          storeName: item.store?.store_name || "알 수 없음",
+          status:
+            item.status ? item.status
+            : item.reservation_cancel
+              ? "cancelled"
+              : "completed",
+          reservationDate: item.reservation_create_time,
+          duration: item.duration || "",
+          code: item.code || "",
+          price: item.price || "",
+          date: item.reservation_create_time,
+          time: item.reservation_create_time || "", // time 필드 추가 (reservation_create_time 사용)
+        }));
+        setUsageData(mapped);
       } catch (error) {
         console.error("Fetch 에러:", error);
         setIsError(true);
@@ -221,12 +248,12 @@ export default function UsageHistoryPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col">
         <div className="pt-8 pb-4 pl-8 w-full">
           <h1 className="text-2xl font-bold">이용 내역</h1>
         </div>
 
-        <div className="flex flex-grow justify-center items-center">
+        <div className="flex justify-center">
           <div className="w-full max-w-xl flex flex-col items-start gap-8 px-4 sm:px-6">
             <h2 className="text-xl font-semibold mt-8">예약 내역</h2>
             <div className="w-full flex flex-col gap-6">
