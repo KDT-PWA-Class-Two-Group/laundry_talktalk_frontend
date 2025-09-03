@@ -1,26 +1,55 @@
-# 단순한 프로덕션 이미지 (빌드 스킵)
-FROM node:22-alpine
+# 멀티 스테이지 빌드
+# 1단계: 빌드 스테이지
+FROM node:22-alpine AS builder
 
 # 작업 디렉토리 설정
 WORKDIR /app
+
+# package.json과 package-lock.json 복사
+COPY package*.json ./
+
+# 모든 의존성 설치 (devDependencies 포함)
+RUN npm ci --silent
+
+# 소스 코드 복사
+COPY . .
+
+# Next.js 애플리케이션 빌드
+RUN npm run build
+
+# 2단계: 프로덕션 스테이지
+FROM node:22-alpine AS runner
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 운영 환경 설정
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# 시스템 사용자 추가 (보안)
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
 # package.json 복사
 COPY package*.json ./
 
 # 프로덕션 의존성만 설치
 RUN npm ci --only=production --silent && \
-    npm cache clean --force
+    npm cache clean --force && \
+    rm -rf /tmp/*
 
-# 미리 빌드된 애플리케이션과 소스 복사
-COPY .next ./.next
-COPY public ./public
+# 빌드된 애플리케이션 복사
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.* ./
+
+# 권한 설정
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 # 포트 노출
 EXPOSE 3000
-
-# 환경 변수 설정
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 
 # 애플리케이션 시작
 CMD ["npm", "start"]
